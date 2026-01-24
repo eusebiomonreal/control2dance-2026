@@ -1,8 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Disc, Play, Pause, Volume2, Calendar, Tag, Hash, Music, ShoppingCart, Sparkles, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useStore } from '@nanostores/react';
+import { X, Disc, Play, Pause, Volume2, Calendar, Tag, Hash, Music, ShoppingCart, Sparkles, FileText, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import type { Product } from '../types';
 import { PLACEHOLDER_COVER } from '../constants';
+import { cartItems } from '../stores/cartStore';
 
 interface ProductModalProps {
   product: Product;
@@ -15,6 +17,8 @@ interface ProductModalProps {
 }
 
 const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, onNext, onPrev, hasNext, hasPrev }) => {
+  const $cartItems = useStore(cartItems);
+  const isInCart = Boolean($cartItems[product.id]);
   const [imgSrc, setImgSrc] = useState(product.image);
   const [loading, setLoading] = useState(true);
   const [currentTrack, setCurrentTrack] = useState(0);
@@ -531,11 +535,24 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
 
               <button
                 onClick={() => onAdd(product)}
-                className="group relative w-full sm:w-auto bg-[#ff4d7d] text-white px-8 py-4 rounded-xl font-black uppercase text-[11px] tracking-[0.2em] shadow-lg shadow-[#ff4d7d]/25 hover:shadow-[#ff4d7d]/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 overflow-hidden"
+                className={`group relative w-full sm:w-auto px-8 py-4 rounded-xl font-black uppercase text-[11px] tracking-[0.2em] shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 overflow-hidden ${
+                  isInCart
+                    ? 'bg-green-600 text-white shadow-green-600/25 hover:shadow-green-600/40'
+                    : 'bg-[#ff4d7d] text-white shadow-[#ff4d7d]/25 hover:shadow-[#ff4d7d]/40'
+                }`}
               >
                 <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                <ShoppingCart className="w-4 h-4" />
-                <span>Añadir al Carrito</span>
+                {isInCart ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>En el Carrito</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="w-4 h-4" />
+                    <span>Añadir al Carrito</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

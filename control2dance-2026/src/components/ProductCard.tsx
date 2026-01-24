@@ -1,8 +1,10 @@
 
 import React, { useState } from 'react';
-import { PlusCircle, CheckCircle2, Disc } from 'lucide-react';
+import { useStore } from '@nanostores/react';
+import { PlusCircle, CheckCircle2, Disc, ShoppingCart } from 'lucide-react';
 import type { Product } from '../types';
 import { PLACEHOLDER_COVER } from '../constants';
+import { cartItems } from '../stores/cartStore';
 
 interface ProductCardProps {
   product: Product;
@@ -11,6 +13,8 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, onShowInfo }) => {
+  const $cartItems = useStore(cartItems);
+  const isInCart = Boolean($cartItems[product.id]);
   const [isAdded, setIsAdded] = useState(false);
   const [imgSrc, setImgSrc] = useState(product.image);
   const [loading, setLoading] = useState(true);
@@ -78,15 +82,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, onShowInfo })
           <button
             onClick={handleAdd}
             className={`px-4 py-2 shrink-0 flex items-center justify-center gap-2 rounded-lg transition-all font-black uppercase text-[9px] tracking-widest ${
-              isAdded 
-                ? 'bg-green-500 text-white' 
-                : 'bg-white/5 text-white hover:bg-[#ff4d7d] hover:text-white group-hover:bg-white/10'
+              isAdded
+                ? 'bg-green-500 text-white'
+                : isInCart
+                  ? 'bg-[#ff4d7d]/20 text-[#ff4d7d] border border-[#ff4d7d]/30'
+                  : 'bg-white/5 text-white hover:bg-[#ff4d7d] hover:text-white group-hover:bg-white/10'
             }`}
           >
             {isAdded ? (
               <>
                 <CheckCircle2 className="w-3 h-3" />
                 <span>Añadido</span>
+              </>
+            ) : isInCart ? (
+              <>
+                <ShoppingCart className="w-3 h-3" />
+                <span>En carrito</span>
               </>
             ) : (
               <>
