@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
-import { cartItems } from '../../stores/cartStore';
+import { cartItems, removeFromCart } from '../../stores/cartStore';
 import { $user, $isAuthenticated } from '../../stores/authStore';
-import { ShoppingBag, Loader2, AlertCircle, User, Mail, Lock } from 'lucide-react';
+import { ShoppingBag, Loader2, AlertCircle, User, Mail, Lock, Trash2 } from 'lucide-react';
 
 export default function CheckoutForm() {
   const items = useStore(cartItems);
@@ -105,7 +105,7 @@ export default function CheckoutForm() {
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
           <div className="divide-y divide-zinc-800">
             {cartItemsArray.map((item) => (
-              <div key={item.id} className="p-4 flex gap-4">
+              <div key={item.id} className="p-4 flex gap-4 group">
                 <div className="w-20 h-20 bg-zinc-800 rounded-lg overflow-hidden flex-shrink-0">
                   <img
                     src={item.image}
@@ -118,9 +118,15 @@ export default function CheckoutForm() {
                   <p className="text-sm text-zinc-400">{item.brand}</p>
                   <p className="text-sm text-zinc-500">{item.catalogNumber}</p>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex flex-col items-end gap-2">
                   <p className="font-medium text-white">€{item.price.toFixed(2)}</p>
-                  <p className="text-sm text-zinc-400">x{item.quantity}</p>
+                  <button
+                    onClick={() => removeFromCart(item.id)}
+                    className="p-1.5 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                    title="Eliminar"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))}

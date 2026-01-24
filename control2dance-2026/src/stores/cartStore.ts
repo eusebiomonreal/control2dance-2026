@@ -50,17 +50,17 @@ export function addToCart(product: Product) {
   const currentCart = cartItems.get();
   const existingItem = currentCart[product.id];
 
+  // Don't add if already in cart
   if (existingItem) {
-    cartItems.setKey(product.id, {
-      ...existingItem,
-      quantity: existingItem.quantity + 1,
-    });
-  } else {
-    cartItems.setKey(product.id, {
-      ...product,
-      quantity: 1,
-    });
+    console.log('🛒 Product already in cart:', product.name);
+    showToast('Este producto ya está en el carrito', product.name, 'info');
+    return;
   }
+
+  cartItems.setKey(product.id, {
+    ...product,
+    quantity: 1,
+  });
 
   console.log('🛒 Cart now has:', Object.keys(cartItems.get()).length, 'items');
 
