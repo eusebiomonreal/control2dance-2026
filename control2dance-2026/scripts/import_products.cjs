@@ -1,8 +1,14 @@
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-const SUPABASE_URL = 'https://api.control2dance.es';
-const SERVICE_ROLE_KEY = 'REDACTED_SERVICE_KEY';
+const SUPABASE_URL = process.env.PUBLIC_SUPABASE_URL;
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+  console.error('❌ Faltan variables de entorno PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_KEY');
+  process.exit(1);
+}
 
 // Función para crear slug desde nombre
 function createSlug(name, brand) {
