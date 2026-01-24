@@ -21,7 +21,6 @@ export default defineConfig({
     '/mi-cuenta/': '/dashboard/',
     '/mi-cuenta/pedidos': '/dashboard/orders',
     '/mi-cuenta/descargas': '/dashboard/downloads',
-    '/carrito': '/checkout',
-    '/finalizar-compra': '/checkout',
+    '/finalizar-compra': '/carrito',
   }
 });
