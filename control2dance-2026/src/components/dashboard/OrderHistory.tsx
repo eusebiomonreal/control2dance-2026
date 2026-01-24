@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react';
 import { $orders } from '../../stores/dashboardStore';
-import { ShoppingBag, ChevronRight, Package, ExternalLink } from 'lucide-react';
+import { ShoppingBag, ChevronRight, Package } from 'lucide-react';
 
 interface OrderHistoryProps {
   limit?: number;
@@ -104,16 +104,6 @@ export default function OrderHistory({ limit, showViewAll = false }: OrderHistor
                       <p className="text-xs text-zinc-400">{item.product_catalog_number}</p>
                     </div>
                   </div>
-
-                  {order.status === 'paid' && item.download_token && (
-                    <a
-                      href="/dashboard/downloads"
-                      className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300"
-                    >
-                      Ver descargas
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
                 </div>
               ))}
             </div>
