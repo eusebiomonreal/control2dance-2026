@@ -70,6 +70,8 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
   }, [orderId]);
 
   const loadOrder = async () => {
+    console.log('Loading order with ID:', orderId);
+    
     const { data, error } = await supabase
       .from('orders')
       .select(`
@@ -83,7 +85,10 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
       .eq('id', orderId)
       .single();
 
+    console.log('Order query result:', { data, error });
+
     if (error || !data) {
+      console.error('Order error:', error);
       setError('Pedido no encontrado');
     } else {
       // Transformar download_tokens array a download_token objeto
