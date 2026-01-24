@@ -26,7 +26,7 @@ export async function createCheckoutSession(
   successUrl: string,
   cancelUrl: string
 ) {
-  const baseUrl = import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4321';
+  const baseUrl = process.env.PUBLIC_SITE_URL || import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4321';
   
   const lineItems = items.map(item => {
     // Convertir URL relativa a absoluta si es necesario
@@ -74,7 +74,7 @@ export async function getCheckoutSession(sessionId: string) {
 }
 
 export function constructWebhookEvent(payload: string | Buffer, signature: string) {
-  const webhookSecret = import.meta.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || import.meta.env.STRIPE_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
     throw new Error('STRIPE_WEBHOOK_SECRET not configured');

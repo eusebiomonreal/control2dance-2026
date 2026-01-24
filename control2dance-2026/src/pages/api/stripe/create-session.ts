@@ -24,7 +24,7 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    const siteUrl = import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4321';
+    const siteUrl = process.env.PUBLIC_SITE_URL || import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4321';
     const successUrl = `${siteUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${siteUrl}/checkout`;
 
