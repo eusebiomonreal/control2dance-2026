@@ -1,0 +1,73 @@
+---
+import '../../styles/global.css';
+
+// Esta página maneja el callback de autenticación de Supabase
+// El código de auth se procesa en el cliente
+---
+
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<title>Verificando... | Control2Dance Records</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+	</head>
+	<body class="bg-[#020308] text-white selection:bg-[#ff4d7d] min-h-screen flex items-center justify-center">
+		<div class="text-center">
+			<div class="w-16 h-16 mx-auto mb-6">
+				<svg class="animate-spin text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+				</svg>
+			</div>
+			<h1 class="text-xl font-semibold text-white mb-2">Verificando tu cuenta...</h1>
+			<p class="text-zinc-400">Por favor espera un momento</p>
+		</div>
+
+		<script>
+			import { supabase } from '../../lib/supabase';
+
+			async function handleAuthCallback() {
+				const hashParams = new URLSearchParams(window.location.hash.substring(1));
+				const accessToken = hashParams.get('access_token');
+				const refreshToken = hashParams.get('refresh_token');
+				const type = hashParams.get('type');
+
+				if (accessToken && refreshToken) {
+					const { error } = await supabase.auth.setSession({
+						access_token: accessToken,
+						refresh_token: refreshToken
+					});
+
+					if (error) {
+						console.error('Auth callback error:', error);
+						window.location.href = '/auth/login?error=callback_failed';
+						return;
+					}
+
+					// Redirigir según el tipo
+					if (type === 'recovery') {
+						window.location.href = '/auth/reset-password';
+					} else {
+						window.location.href = '/dashboard';
+					}
+				} else {
+					// No hay tokens, verificar si hay error
+					const urlParams = new URLSearchParams(window.location.search);
+					const error = urlParams.get('error');
+
+					if (error) {
+						window.location.href = `/auth/login?error=${error}`;
+					} else {
+						window.location.href = '/auth/login';
+					}
+				}
+			}
+
+			handleAuthCallback();
+		</script>
+	</body>
+</html>

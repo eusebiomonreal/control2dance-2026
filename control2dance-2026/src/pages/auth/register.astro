@@ -1,0 +1,29 @@
+---
+import Header from '../../components/Header';
+import Footer from '../../components/Footer.astro';
+import RegisterForm from '../../components/auth/RegisterForm';
+import '../../styles/global.css';
+---
+
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Crear Cuenta | Control2Dance Records</title>
+		<meta name="description" content="Únete a Control2Dance Records y accede a masters digitales exclusivos de música dance." />
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+	</head>
+	<body class="bg-[#020308] text-white selection:bg-[#ff4d7d] min-h-screen flex flex-col">
+		<Header client:load />
+
+		<main class="flex-1 flex items-center justify-center px-4 py-16">
+			<RegisterForm client:load />
+		</main>
+
+		<Footer />
+	</body>
+</html>

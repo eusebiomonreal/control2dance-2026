@@ -1,0 +1,90 @@
+---
+import Header from '../../components/Header';
+import CartDrawer from '../../components/CartDrawer';
+import Footer from '../../components/Footer.astro';
+import ProductDetail from '../../components/ProductDetail';
+import '../../styles/global.css';
+
+// Esta página se renderiza dinámicamente en servidor
+export const prerender = false;
+
+const { slug } = Astro.params;
+
+// TODO: Fetch product from Supabase by slug
+// Por ahora usamos datos de ejemplo
+const product = {
+  id: slug,
+  slug: slug,
+  name: 'Producto de ejemplo',
+  brand: 'Control2Dance',
+  description: 'Descripción del producto',
+  price: 3.99,
+  image: '/placeholder.jpg',
+  catalogNumber: 'C2D-001',
+  year: '2024',
+  genre: 'House',
+  styles: ['Deep House', 'Tech House'],
+  label: 'Control2Dance Records',
+  country: 'Spain',
+  tracks: ['Track 1', 'Track 2'],
+  audioUrls: []
+};
+---
+
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{product.name} | Control2Dance Records</title>
+		<meta name="description" content={product.description} />
+
+		<!-- Open Graph -->
+		<meta property="og:title" content={`${product.name} | Control2Dance Records`} />
+		<meta property="og:description" content={product.description} />
+		<meta property="og:image" content={product.image} />
+		<meta property="og:type" content="product" />
+		<meta property="og:url" content={`https://control2dance.es/catalogo/${slug}`} />
+
+		<!-- Twitter Card -->
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={product.name} />
+		<meta name="twitter:description" content={product.description} />
+		<meta name="twitter:image" content={product.image} />
+
+		<!-- Structured Data -->
+		<script type="application/ld+json" set:html={JSON.stringify({
+			"@context": "https://schema.org",
+			"@type": "Product",
+			"name": product.name,
+			"description": product.description,
+			"image": product.image,
+			"brand": {
+				"@type": "Brand",
+				"name": product.brand
+			},
+			"offers": {
+				"@type": "Offer",
+				"price": product.price,
+				"priceCurrency": "EUR",
+				"availability": "https://schema.org/InStock"
+			},
+			"sku": product.catalogNumber
+		})} />
+
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+	</head>
+	<body class="bg-[#020308] text-white selection:bg-[#ff4d7d]">
+		<Header client:load />
+
+		<main class="max-w-screen-xl mx-auto px-8 pt-32 pb-16">
+			<ProductDetail client:load slug={slug} />
+		</main>
+
+		<CartDrawer client:idle />
+		<Footer />
+	</body>
+</html>

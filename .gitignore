@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Build output
+dist/
+.astro/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large media files (stored externally)
+*.mp3
+*.wav
+*.flac
+*.zip
+*.rar
+
+# Audio folder (too large for git)
+control2dance-2026/public/audio/
+
+# Covers (if too large)
+# control2dance-2026/public/covers/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Cache
+.cache/

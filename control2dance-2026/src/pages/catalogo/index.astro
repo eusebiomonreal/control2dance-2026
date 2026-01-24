@@ -1,0 +1,50 @@
+---
+import Header from '../../components/Header';
+import Filters from '../../components/Filters';
+import ProductGrid from '../../components/ProductGrid';
+import ProductModalWrapper from '../../components/ProductModalWrapper';
+import CartDrawer from '../../components/CartDrawer';
+import Footer from '../../components/Footer.astro';
+import '../../styles/global.css';
+---
+
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Catálogo | Control2Dance Records</title>
+		<meta name="description" content="Explora nuestra colección de masters digitales de música dance, house y electronic. Compra y descarga en alta calidad WAV." />
+
+		<!-- Open Graph -->
+		<meta property="og:title" content="Catálogo | Control2Dance Records" />
+		<meta property="og:description" content="Explora nuestra colección de masters digitales de música dance, house y electronic." />
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content="https://control2dance.es/catalogo/" />
+
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+	</head>
+	<body class="bg-[#020308] text-white selection:bg-[#ff4d7d]">
+		<Header client:load />
+
+		<!-- Page Header -->
+		<section class="max-w-screen-2xl mx-auto px-8 pt-32 pb-8">
+			<h1 class="text-4xl md:text-5xl font-black mb-4">Catálogo</h1>
+			<p class="text-zinc-400 text-lg max-w-2xl">
+				Explora nuestra colección de masters digitales. Cada título disponible en alta calidad WAV.
+			</p>
+		</section>
+
+		<section class="max-w-screen-2xl mx-auto px-8 pb-32">
+			<Filters client:visible />
+			<ProductGrid client:visible />
+		</section>
+
+		<ProductModalWrapper client:idle />
+		<CartDrawer client:idle />
+		<Footer />
+	</body>
+</html>

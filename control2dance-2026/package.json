@@ -1,0 +1,32 @@
+{
+  "name": "astro-app",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/node": "^9.5.2",
+    "@astrojs/react": "^4.4.2",
+    "@google/genai": "^1.38.0",
+    "@nanostores/react": "^1.0.0",
+    "@stripe/stripe-js": "^8.6.4",
+    "@supabase/supabase-js": "^2.91.1",
+    "@tailwindcss/vite": "^4.1.18",
+    "astro": "^5.16.14",
+    "lucide-react": "^0.562.0",
+    "nanoid": "^5.1.6",
+    "nanostores": "^1.1.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-player": "^3.4.0",
+    "stripe": "^20.2.0",
+    "tailwindcss": "^4.1.18"
+  },
+  "devDependencies": {
+    "dotenv": "^17.2.3"
+  }
+}

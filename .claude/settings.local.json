@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(node scripts/update_from_discogs.js:*)",
+      "Bash(node scripts/download_covers.js:*)",
+      "Bash(node scripts/rename_audio.cjs:*)",
+      "Bash(node scripts/organize_audio.cjs:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(node scripts/sync_audio.cjs:*)",
+      "Bash(node scripts/download_audio.cjs:*)",
+      "Bash(curl -s \"https://control2dance.es/wp-json/wp/v2/download?per_page=2\")",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(node scripts/recover_urls.js:*)",
+      "Bash(tree:*)",
+      "Bash(npm install:*)",
+      "Bash(psql:*)",
+      "Bash(lsof:*)"
+    ]
+  }
+}
