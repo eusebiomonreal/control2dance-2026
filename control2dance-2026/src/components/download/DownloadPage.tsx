@@ -14,6 +14,7 @@ interface FileInfo {
 export default function DownloadPage({ token }: DownloadPageProps) {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [product, setProduct] = useState<{ name: string; catalog_number: string } | null>(null);
@@ -67,6 +68,35 @@ export default function DownloadPage({ token }: DownloadPageProps) {
     if (bytes === 0) return '';
     const mb = bytes / (1024 * 1024);
     return `${mb.toFixed(1)} MB`;
+  };
+
+  const handleDownloadAll = async () => {
+    if (!token || files.length === 0) return;
+
+    setDownloadingAll(true);
+    setError(null);
+
+    for (const file of files) {
+      if (downloadedFiles.has(file.name)) continue;
+      
+      setDownloading(file.name);
+      const result = await getDownloadUrl(token, file.name);
+
+      if (result.error) {
+        setError(result.error);
+        break;
+      }
+
+      if (result.url) {
+        window.open(result.url, '_blank');
+        setDownloadedFiles(prev => new Set(prev).add(file.name));
+        // Pequeña pausa entre descargas para evitar bloqueo del navegador
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+
+    setDownloading(null);
+    setDownloadingAll(false);
   };
 
   if (!token) {
@@ -183,6 +213,32 @@ export default function DownloadPage({ token }: DownloadPageProps) {
             </div>
           ))}
         </div>
+
+        {/* Download All Button */}
+        {files.length > 1 && (
+          <button
+            onClick={handleDownloadAll}
+            disabled={downloadingAll || downloading !== null || downloadedFiles.size === files.length}
+            className="w-full py-4 px-6 bg-green-600 hover:bg-green-500 disabled:bg-green-600/50 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-3 mb-6"
+          >
+            {downloadingAll ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Descargando {downloadedFiles.size + 1} de {files.length}...
+              </>
+            ) : downloadedFiles.size === files.length ? (
+              <>
+                <CheckCircle className="w-5 h-5" />
+                Todos descargados
+              </>
+            ) : (
+              <>
+                <Download className="w-5 h-5" />
+                Descargar todos ({files.length} archivos)
+              </>
+            )}
+          </button>
+        )}
 
         {/* Info */}
         <div className="pt-4 border-t border-zinc-800 space-y-2">
