@@ -17,7 +17,12 @@
       "Bash(tree:*)",
       "Bash(npm install:*)",
       "Bash(psql:*)",
-      "Bash(lsof:*)"
+      "Bash(lsof:*)",
+      "Bash(node scripts/fix_orders_user_id.cjs:*)",
+      "Bash(node -e:*)",
+      "Bash(node scripts/get_stripe_order.cjs:*)",
+      "Bash(node scripts/sync_product_ids.cjs:*)",
+      "Bash(git add:*)"
     ]
   }
 }
