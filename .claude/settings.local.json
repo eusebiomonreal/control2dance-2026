@@ -31,7 +31,8 @@
       "Bash(git push:*)",
       "mcp__claude_ai_Stripe__list_payment_intents",
       "mcp__claude_ai_Stripe__search_stripe_resources",
-      "mcp__claude_ai_Stripe__fetch_stripe_resources"
+      "mcp__claude_ai_Stripe__fetch_stripe_resources",
+      "Bash(git commit:*)"
     ]
   }
 }
