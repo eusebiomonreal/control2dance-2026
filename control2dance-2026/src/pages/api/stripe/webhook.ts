@@ -119,8 +119,8 @@ async function handleCheckoutComplete(session: any) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30); // 30 días
 
-    const { error: tokenError } = await supabase
-      .from('download_tokens')
+    const { error: tokenError } = await (supabase
+      .from('download_tokens') as any)
       .insert({
         order_item_id: orderItem.id,
         user_id: userId || null,
