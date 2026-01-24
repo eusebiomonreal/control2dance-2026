@@ -25,7 +25,6 @@ interface OrderItem {
   price: number;
   product?: {
     cover_image: string | null;
-    download_path: string | null;
   };
   download_token?: DownloadToken | null;
 }
@@ -78,7 +77,7 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
         *,
         items:order_items(
           *,
-          product:products(cover_image, download_path),
+          product:products(cover_image),
           download_tokens(*)
         )
       `)
