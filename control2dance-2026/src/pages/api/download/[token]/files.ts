@@ -14,7 +14,15 @@ export const GET: APIRoute = async ({ params }) => {
     });
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return new Response(JSON.stringify({ error: 'Configuración del servidor incompleta' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  try {
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   // Verificar token
   const { data: downloadToken, error } = await supabase
@@ -94,4 +102,12 @@ export const GET: APIRoute = async ({ params }) => {
     status: 200,
     headers: { 'Content-Type': 'application/json' }
   });
+
+  } catch (err) {
+    console.error('Error en /api/download/[token]/files:', err);
+    return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 };
