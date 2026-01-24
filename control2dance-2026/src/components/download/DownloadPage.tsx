@@ -57,9 +57,23 @@ export default function DownloadPage({ token }: DownloadPageProps) {
     }
 
     if (result.url) {
-      window.open(result.url, '_blank');
-      setDownloadedFiles(prev => new Set(prev).add(fileName));
-      setDownloadsRemaining(prev => Math.max(0, prev - 1));
+      try {
+        const response = await fetch(result.url);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        setDownloadedFiles(prev => new Set(prev).add(fileName));
+        setDownloadsRemaining(prev => Math.max(0, prev - 1));
+      } catch (err) {
+        setError('Error descargando archivo');
+      }
     }
 
     setDownloading(null);
