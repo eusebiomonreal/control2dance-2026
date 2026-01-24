@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 
-const stripeSecretKey = import.meta.env.STRIPE_SECRET_KEY;
+// Use process.env for server-side runtime variables
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || import.meta.env.STRIPE_SECRET_KEY;
 
 if (!stripeSecretKey) {
   console.warn('STRIPE_SECRET_KEY not configured. Payment features will not work.');
