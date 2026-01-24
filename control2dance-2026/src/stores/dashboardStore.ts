@@ -56,17 +56,26 @@ export async function loadOrders() {
       items:order_items(
         *,
         product:products(id, name, cover_image, catalog_number),
-        download_token:download_tokens(*)
+        download_tokens(*)
       )
     `)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }) as any;
 
   if (error) {
     console.error('Error loading orders:', error);
     return;
   }
 
-  $orders.set(orders as OrderWithItems[] || []);
+  // Transformar download_tokens array a download_token objeto
+  const transformedOrders = (orders || []).map((order: any) => ({
+    ...order,
+    items: (order.items || []).map((item: any) => ({
+      ...item,
+      download_token: item.download_tokens?.[0] || null
+    }))
+  }));
+
+  $orders.set(transformedOrders as OrderWithItems[]);
 }
 
 export async function loadDownloads() {
@@ -77,14 +86,14 @@ export async function loadDownloads() {
       product:products(*),
       order_item:order_items(*)
     `)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }) as any;
 
   if (error) {
     console.error('Error loading downloads:', error);
     return;
   }
 
-  $downloads.set(downloads as DownloadWithProduct[] || []);
+  $downloads.set((downloads || []) as DownloadWithProduct[]);
 }
 
 export async function loadActivities(limit = 20) {
@@ -92,14 +101,14 @@ export async function loadActivities(limit = 20) {
     .from('activity_log')
     .select('*')
     .order('created_at', { ascending: false })
-    .limit(limit);
+    .limit(limit) as any;
 
   if (error) {
     console.error('Error loading activities:', error);
     return;
   }
 
-  $activities.set(activities as ActivityWithMetadata[] || []);
+  $activities.set((activities || []) as ActivityWithMetadata[]);
 }
 
 // Log de actividad
@@ -111,7 +120,7 @@ export async function logActivity(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
-  await supabase.from('activity_log').insert({
+  await (supabase.from('activity_log') as any).insert({
     user_id: user.id,
     action,
     description,
@@ -126,7 +135,7 @@ export async function getDownloadUrl(token: string): Promise<{ url?: string; err
     .from('download_tokens')
     .select('*, product:products(*)')
     .eq('token', token)
-    .single();
+    .single() as any;
 
   if (error || !downloadToken) {
     return { error: 'Token de descarga no válido' };
@@ -162,8 +171,7 @@ export async function getDownloadUrl(token: string): Promise<{ url?: string; err
   }
 
   // Incrementar contador de descargas
-  await supabase
-    .from('download_tokens')
+  await (supabase.from('download_tokens') as any)
     .update({
       download_count: downloadToken.download_count + 1,
       last_download_at: new Date().toISOString()
@@ -172,7 +180,7 @@ export async function getDownloadUrl(token: string): Promise<{ url?: string; err
 
   // Log de descarga
   const { data: { user } } = await supabase.auth.getUser();
-  await supabase.from('download_logs').insert({
+  await (supabase.from('download_logs') as any).insert({
     download_token_id: downloadToken.id,
     user_id: user?.id,
     product_id: downloadToken.product_id

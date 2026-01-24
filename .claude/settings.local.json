@@ -22,7 +22,9 @@
       "Bash(node -e:*)",
       "Bash(node scripts/get_stripe_order.cjs:*)",
       "Bash(node scripts/sync_product_ids.cjs:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }
