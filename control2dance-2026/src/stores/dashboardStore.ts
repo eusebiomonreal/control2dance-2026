@@ -251,7 +251,9 @@ export async function getDownloadUrl(token: string, fileName?: string, skipCount
 
   const { data: signedUrlData, error: urlError } = await supabase.storage
     .from('downloads')
-    .createSignedUrl(`${filePath}/${targetFile.name}`, 3600); // 1 hora
+    .createSignedUrl(`${filePath}/${targetFile.name}`, 3600, {
+      download: true  // Fuerza Content-Disposition: attachment
+    });
 
   if (urlError || !signedUrlData) {
     return { error: 'Error generando enlace de descarga' };

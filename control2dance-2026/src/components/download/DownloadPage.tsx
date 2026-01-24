@@ -57,23 +57,20 @@ export default function DownloadPage({ token }: DownloadPageProps) {
     }
 
     if (result.url) {
-      try {
-        const response = await fetch(result.url);
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        
-        setDownloadedFiles(prev => new Set(prev).add(fileName));
-        setDownloadsRemaining(prev => Math.max(0, prev - 1));
-      } catch (err) {
-        setError('Error descargando archivo');
-      }
+      // Descarga directa - el servidor envía Content-Disposition: attachment
+      const link = document.createElement('a');
+      link.href = result.url;
+      link.download = fileName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      
+      setTimeout(() => {
+        document.body.removeChild(link);
+      }, 100);
+
+      setDownloadedFiles(prev => new Set(prev).add(fileName));
+      setDownloadsRemaining(prev => Math.max(0, prev - 1));
     }
 
     setDownloading(null);
@@ -107,27 +104,21 @@ export default function DownloadPage({ token }: DownloadPageProps) {
       }
 
       if (result.url) {
-        // Usar fetch + blob para descargar sin popup blocker
-        try {
-          const response = await fetch(result.url);
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = file.name;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          window.URL.revokeObjectURL(url);
-          
-          setDownloadedFiles(prev => new Set(prev).add(file.name));
-          // Pausa entre descargas
-          await new Promise(resolve => setTimeout(resolve, 500));
-        } catch (err) {
-          setError('Error descargando archivo');
-          allSuccess = false;
-          break;
-        }
+        // Descarga directa sin fetch
+        const link = document.createElement('a');
+        link.href = result.url;
+        link.download = file.name;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        
+        setTimeout(() => {
+          document.body.removeChild(link);
+        }, 100);
+        
+        setDownloadedFiles(prev => new Set(prev).add(file.name));
+        // Pausa entre descargas para que el navegador procese
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
     }
 
