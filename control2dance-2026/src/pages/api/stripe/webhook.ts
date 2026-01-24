@@ -126,7 +126,7 @@ async function handleCheckoutComplete(session: any) {
         user_id: userId || null,
         product_id: productId || null,
         token,
-        max_downloads: 5,
+        max_downloads: 3,
         download_count: 0,
         expires_at: expiresAt.toISOString(),
         is_active: true

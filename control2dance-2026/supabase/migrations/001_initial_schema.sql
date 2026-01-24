@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS download_tokens (
   user_id UUID REFERENCES auth.users(id),
   product_id UUID REFERENCES products(id),
   token VARCHAR(255) UNIQUE NOT NULL,
-  max_downloads INT DEFAULT 5,
+  max_downloads INT DEFAULT 3,
   download_count INT DEFAULT 0,
   expires_at TIMESTAMPTZ NOT NULL,
   is_active BOOLEAN DEFAULT true,
