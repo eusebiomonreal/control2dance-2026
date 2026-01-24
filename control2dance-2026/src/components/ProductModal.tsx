@@ -534,7 +534,13 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
               </div>
 
               <button
-                onClick={() => onAdd(product)}
+                onClick={() => {
+                  if (isInCart) {
+                    window.location.href = '/carrito';
+                  } else {
+                    onAdd(product);
+                  }
+                }}
                 className={`group relative w-full sm:w-auto px-8 py-4 rounded-xl font-black uppercase text-[11px] tracking-[0.2em] shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 overflow-hidden ${
                   isInCart
                     ? 'bg-green-600 text-white shadow-green-600/25 hover:shadow-green-600/40'

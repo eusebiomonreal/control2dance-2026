@@ -23,8 +23,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, onShowInfo })
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+
+    // If already in cart, go to cart page
+    if (isInCart) {
+      window.location.href = '/carrito';
+      return;
+    }
+
     console.log('🔘 Button clicked for:', product.name);
-    console.log('🔘 onAdd function:', typeof onAdd);
     onAdd(product);
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 2000);
