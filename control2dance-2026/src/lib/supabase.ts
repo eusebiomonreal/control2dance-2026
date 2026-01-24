@@ -1,8 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+// Use process.env for runtime variables in SSR
+const supabaseUrl = process.env.PUBLIC_SUPABASE_URL || import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase credentials not configured. Auth features will not work.');
@@ -23,7 +24,7 @@ export const supabase = createClient<Database>(
 
 // Cliente para el servidor (usa service key) - solo importar en server-side
 export function createServerClient() {
-  const serviceKey = import.meta.env.SUPABASE_SERVICE_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_KEY || import.meta.env.SUPABASE_SERVICE_KEY;
   return createClient<Database>(
     supabaseUrl || 'https://placeholder.supabase.co',
     serviceKey || 'placeholder-key',
