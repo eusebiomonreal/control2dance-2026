@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { ArrowLeft, Package, CreditCard, Calendar, Receipt, Download, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Package, CreditCard, Calendar, Receipt, Download, Loader2, AlertCircle, FileText } from 'lucide-react';
 
 interface OrderDetailProps {
   orderId: string;
@@ -33,6 +33,8 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [invoiceError, setInvoiceError] = useState<string | null>(null);
 
   useEffect(() => {
     loadOrder();
@@ -57,6 +59,33 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
       setOrder(data as Order);
     }
     setLoading(false);
+  };
+
+  const downloadInvoice = async () => {
+    if (!order?.stripe_payment_intent) return;
+    
+    setInvoiceLoading(true);
+    setInvoiceError(null);
+    
+    try {
+      const response = await fetch(`/api/stripe/invoice?payment_intent=${order.stripe_payment_intent}`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        setInvoiceError(data.error || 'Factura no disponible');
+        return;
+      }
+      
+      if (data.invoice_pdf) {
+        window.open(data.invoice_pdf, '_blank');
+      } else {
+        setInvoiceError('Factura no disponible todavía');
+      }
+    } catch (err) {
+      setInvoiceError('Error al obtener la factura');
+    } finally {
+      setInvoiceLoading(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -224,7 +253,7 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
 
       {/* Acciones */}
       {order.status === 'paid' && (
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <a
             href="/dashboard/downloads"
             className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl transition-colors"
@@ -232,7 +261,25 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
             <Download className="w-5 h-5" />
             Ir a mis descargas
           </a>
+          {order.stripe_payment_intent && (
+            <button
+              onClick={downloadInvoice}
+              disabled={invoiceLoading}
+              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
+            >
+              {invoiceLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <FileText className="w-5 h-5" />
+              )}
+              Descargar factura
+            </button>
+          )}
         </div>
+      )}
+
+      {invoiceError && (
+        <p className="text-sm text-amber-400 text-center">{invoiceError}</p>
       )}
 
       {/* Info cliente */}
