@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getDownloadUrl, getDownloadFiles } from '../../stores/dashboardStore';
+import { getDownloadUrl, getDownloadFiles, incrementDownloadCount } from '../../stores/dashboardStore';
 import { Download, Loader2, AlertCircle, CheckCircle, Music, Clock, FileAudio } from 'lucide-react';
 
 interface DownloadPageProps {
@@ -59,6 +59,7 @@ export default function DownloadPage({ token }: DownloadPageProps) {
     if (result.url) {
       window.open(result.url, '_blank');
       setDownloadedFiles(prev => new Set(prev).add(fileName));
+      setDownloadsRemaining(prev => Math.max(0, prev - 1));
     }
 
     setDownloading(null);
@@ -76,14 +77,18 @@ export default function DownloadPage({ token }: DownloadPageProps) {
     setDownloadingAll(true);
     setError(null);
 
+    let allSuccess = true;
+
     for (const file of files) {
       if (downloadedFiles.has(file.name)) continue;
       
       setDownloading(file.name);
-      const result = await getDownloadUrl(token, file.name);
+      // skipCounter = true para no incrementar en cada archivo
+      const result = await getDownloadUrl(token, file.name, true);
 
       if (result.error) {
         setError(result.error);
+        allSuccess = false;
         break;
       }
 
@@ -93,6 +98,12 @@ export default function DownloadPage({ token }: DownloadPageProps) {
         // Pequeña pausa entre descargas para evitar bloqueo del navegador
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
+    }
+
+    // Incrementar contador solo 1 vez al final si todo fue bien
+    if (allSuccess) {
+      await incrementDownloadCount(token);
+      setDownloadsRemaining(prev => Math.max(0, prev - 1));
     }
 
     setDownloading(null);

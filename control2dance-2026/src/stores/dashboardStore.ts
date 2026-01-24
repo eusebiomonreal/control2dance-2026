@@ -188,7 +188,8 @@ export async function getDownloadFiles(token: string): Promise<{
 }
 
 // Descargar un archivo específico
-export async function getDownloadUrl(token: string, fileName?: string): Promise<{ url?: string; error?: string }> {
+// skipCounter: si es true, no incrementa el contador (para descargas en lote)
+export async function getDownloadUrl(token: string, fileName?: string, skipCounter = false): Promise<{ url?: string; error?: string }> {
   // Verificar token
   const { data: downloadToken, error } = await supabase
     .from('download_tokens')
@@ -256,7 +257,43 @@ export async function getDownloadUrl(token: string, fileName?: string): Promise<
     return { error: 'Error generando enlace de descarga' };
   }
 
-  // Incrementar contador de descargas
+  // Incrementar contador de descargas (solo si no es descarga en lote)
+  if (!skipCounter) {
+    await (supabase.from('download_tokens') as any)
+      .update({
+        download_count: downloadToken.download_count + 1,
+        last_download_at: new Date().toISOString()
+      })
+      .eq('id', downloadToken.id);
+
+    // Log de descarga
+    const { data: { user } } = await supabase.auth.getUser();
+    await (supabase.from('download_logs') as any).insert({
+      download_token_id: downloadToken.id,
+      user_id: user?.id,
+      product_id: downloadToken.product_id
+    });
+
+    await logActivity('download', `Descarga: ${product.master_file_path}`, {
+      product_id: downloadToken.product_id
+    });
+  }
+
+  return { url: signedUrlData.signedUrl };
+}
+
+// Incrementar contador de descargas manualmente (para descargas en lote)
+export async function incrementDownloadCount(token: string): Promise<{ success: boolean; error?: string }> {
+  const { data: downloadToken, error } = await supabase
+    .from('download_tokens')
+    .select('*, product:products(*)')
+    .eq('token', token)
+    .single() as any;
+
+  if (error || !downloadToken) {
+    return { success: false, error: 'Token no válido' };
+  }
+
   await (supabase.from('download_tokens') as any)
     .update({
       download_count: downloadToken.download_count + 1,
@@ -264,7 +301,6 @@ export async function getDownloadUrl(token: string, fileName?: string): Promise<
     })
     .eq('id', downloadToken.id);
 
-  // Log de descarga
   const { data: { user } } = await supabase.auth.getUser();
   await (supabase.from('download_logs') as any).insert({
     download_token_id: downloadToken.id,
@@ -272,9 +308,10 @@ export async function getDownloadUrl(token: string, fileName?: string): Promise<
     product_id: downloadToken.product_id
   });
 
-  await logActivity('download', `Descarga: ${product.master_file_path}`, {
+  const product = downloadToken.product as { master_file_path?: string } | null;
+  await logActivity('download', `Descarga completa: ${product?.master_file_path || 'producto'}`, {
     product_id: downloadToken.product_id
   });
 
-  return { url: signedUrlData.signedUrl };
+  return { success: true };
 }
