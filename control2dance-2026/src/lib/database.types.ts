@@ -123,19 +123,27 @@ export interface AudioPreview {
 export type OrderStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 export type ActivityAction = 'login' | 'logout' | 'purchase' | 'download' | 'password_change' | 'profile_update';
 
+// Tipos base
+export type Order = Database['public']['Tables']['orders']['Row'];
+export type OrderItem = Database['public']['Tables']['order_items']['Row'];
+export type DownloadToken = Database['public']['Tables']['download_tokens']['Row'];
+export type Product = Database['public']['Tables']['products']['Row'];
+export type Activity = Database['public']['Tables']['activity_log']['Row'];
+
 // Tipos extendidos para el dashboard
-export interface OrderWithItems extends Database['public']['Tables']['orders']['Row'] {
-  items: (Database['public']['Tables']['order_items']['Row'] & {
-    download_token?: Database['public']['Tables']['download_tokens']['Row'];
+export interface OrderWithItems extends Order {
+  items: (OrderItem & {
+    product?: Pick<Product, 'id' | 'name' | 'cover_image' | 'catalog_number'>;
+    download_token?: DownloadToken;
   })[];
 }
 
-export interface DownloadWithProduct extends Database['public']['Tables']['download_tokens']['Row'] {
-  product?: Database['public']['Tables']['products']['Row'];
-  order_item?: Database['public']['Tables']['order_items']['Row'];
+export interface DownloadWithProduct extends DownloadToken {
+  product?: Product;
+  order_item?: OrderItem;
 }
 
-export interface ActivityWithMetadata extends Database['public']['Tables']['activity_log']['Row'] {
+export interface ActivityWithMetadata extends Activity {
   metadata: {
     product_name?: string;
     order_id?: string;

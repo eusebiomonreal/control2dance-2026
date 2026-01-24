@@ -61,8 +61,8 @@ async function handleCheckoutComplete(session: any) {
   console.log('User ID from metadata:', userId);
 
   // 1. Crear orden en Supabase
-  const { data: order, error: orderError } = await supabase
-    .from('orders')
+  const { data: order, error: orderError } = await (supabase
+    .from('orders') as any)
     .insert({
       user_id: userId || null,
       stripe_session_id: session.id,
@@ -96,8 +96,8 @@ async function handleCheckoutComplete(session: any) {
     const productId = product?.metadata?.product_id;
 
     // Crear order_item
-    const { data: orderItem, error: itemError } = await supabase
-      .from('order_items')
+    const { data: orderItem, error: itemError } = await (supabase
+      .from('order_items') as any)
       .insert({
         order_id: order.id,
         product_id: productId || null,
