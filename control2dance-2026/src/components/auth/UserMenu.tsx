@@ -32,13 +32,13 @@ export default function UserMenu() {
       <div className="flex items-center gap-3">
         <a
           href="/auth/login"
-          className="text-sm text-zinc-300 hover:text-white transition-colors"
+          className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white transition-colors"
         >
-          Iniciar Sesión
+          Entrar
         </a>
         <a
           href="/auth/register"
-          className="text-sm px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
+          className="text-[10px] font-black uppercase tracking-widest px-4 py-2.5 bg-[#ff4d7d] hover:bg-[#ff6b94] text-white rounded-2xl transition-colors"
         >
           Registrarse
         </a>
