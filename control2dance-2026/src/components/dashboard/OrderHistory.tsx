@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react';
 import { $orders } from '../../stores/dashboardStore';
-import { ShoppingBag, Download, ChevronRight, Package } from 'lucide-react';
+import { ShoppingBag, ChevronRight, Package } from 'lucide-react';
 
 interface OrderHistoryProps {
   limit?: number;
@@ -106,13 +106,25 @@ export default function OrderHistory({ limit, showViewAll = false }: OrderHistor
                   </div>
 
                   {order.status === 'paid' && item.download_token && (
-                    <a
-                      href={`/download/${item.download_token.token}`}
-                      className="flex items-center gap-1 text-sm text-indigo-400 hover:text-indigo-300"
-                    >
-                      <Download className="w-4 h-4" />
-                      Descargar
-                    </a>
+                    (() => {
+                      const remaining = item.download_token.max_downloads - item.download_token.download_count;
+                      const isExhausted = remaining <= 0;
+                      const isLow = remaining === 1;
+                      
+                      return (
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            isExhausted 
+                              ? 'bg-red-500/10 text-red-400' 
+                              : isLow 
+                                ? 'bg-yellow-500/10 text-yellow-400'
+                                : 'bg-green-500/10 text-green-400'
+                          }`}>
+                            {isExhausted ? 'Agotadas' : `${remaining}/${item.download_token.max_downloads}`}
+                          </span>
+                        </div>
+                      );
+                    })()
                   )}
                 </div>
               ))}
