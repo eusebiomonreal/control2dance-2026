@@ -16,4 +16,16 @@ services:
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
       - PUBLIC_SITE_URL=${PUBLIC_SITE_URL}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.control2dance.rule=Host(`dev.control2dance.es`)"
+      - "traefik.http.routers.control2dance.entrypoints=websecure"
+      - "traefik.http.routers.control2dance.tls.certresolver=letsencrypt"
+      - "traefik.http.services.control2dance.loadbalancer.server.port=4321"
+    networks:
+      - dokploy-network
     restart: unless-stopped
+
+networks:
+  dokploy-network:
+    external: true
