@@ -8,7 +8,7 @@ if (!stripeSecretKey) {
 }
 
 export const stripe = new Stripe(stripeSecretKey || 'sk_test_placeholder', {
-  apiVersion: '2023-10-16'
+  apiVersion: '2025-12-15.clover'
 });
 
 export interface LineItem {
