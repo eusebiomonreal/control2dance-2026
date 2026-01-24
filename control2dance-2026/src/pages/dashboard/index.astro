@@ -5,7 +5,6 @@ import DashboardLayout from '../../components/dashboard/DashboardLayout';
 import AccountStats from '../../components/dashboard/AccountStats';
 import OrderHistory from '../../components/dashboard/OrderHistory';
 import DownloadsList from '../../components/dashboard/DownloadsList';
-import ActivityFeed from '../../components/dashboard/ActivityFeed';
 import '../../styles/global.css';
 ---
 
@@ -34,10 +33,7 @@ import '../../styles/global.css';
 
 					<AccountStats client:load />
 
-					<div class="grid lg:grid-cols-2 gap-6">
-						<OrderHistory client:load limit={3} showViewAll={true} />
-						<ActivityFeed client:load limit={5} showViewAll={true} />
-					</div>
+					<OrderHistory client:load limit={3} showViewAll={true} />
 
 					<DownloadsList client:load limit={3} showViewAll={true} />
 				</div>

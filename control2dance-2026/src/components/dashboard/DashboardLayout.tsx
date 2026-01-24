@@ -2,18 +2,17 @@ import { useEffect } from 'react';
 import { useStore } from '@nanostores/react';
 import { $user, $authLoading, $isAuthenticated } from '../../stores/authStore';
 import { loadDashboardData, $dashboardLoading } from '../../stores/dashboardStore';
-import { LayoutDashboard, ShoppingBag, Download, Activity, Settings, Loader2 } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Download, Settings, Loader2 } from 'lucide-react';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  activeTab: 'overview' | 'orders' | 'downloads' | 'activity' | 'settings';
+  activeTab: 'overview' | 'orders' | 'downloads' | 'settings';
 }
 
 const navItems = [
   { id: 'overview', label: 'Resumen', href: '/dashboard', icon: LayoutDashboard },
   { id: 'orders', label: 'Pedidos', href: '/dashboard/orders', icon: ShoppingBag },
   { id: 'downloads', label: 'Descargas', href: '/dashboard/downloads', icon: Download },
-  { id: 'activity', label: 'Actividad', href: '/dashboard/activity', icon: Activity },
   { id: 'settings', label: 'Ajustes', href: '/dashboard/settings', icon: Settings },
 ];
 
