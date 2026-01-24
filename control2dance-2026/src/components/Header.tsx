@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
 import { ShoppingCart, Search } from 'lucide-react';
-import { cartItems, toggleCart } from '../stores/cartStore';
+import { cartItems } from '../stores/cartStore';
 import { searchQuery } from '../stores/productStore';
 import UserMenu from './auth/UserMenu';
 
@@ -52,10 +52,10 @@ export default function Header() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
           </div>
           {isMounted && <UserMenu />}
-          <button onClick={() => toggleCart(true)} className="relative p-3 bg-white/5 border border-white/10 rounded-2xl hover:scale-110 transition-transform">
+          <a href="/carrito" className="relative p-3 bg-white/5 border border-white/10 rounded-2xl hover:scale-110 transition-transform">
             <ShoppingCart className="w-5 h-5" />
             {isMounted && cartCount > 0 && <span className="absolute -top-1 -right-1 bg-[#ff4d7d] text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-lg">{cartCount}</span>}
-          </button>
+          </a>
         </div>
       </div>
     </nav>

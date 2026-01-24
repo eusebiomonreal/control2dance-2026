@@ -1,9 +1,8 @@
-import { map, atom } from 'nanostores';
+import { map } from 'nanostores';
 import type { CartItem, Product } from '../types';
 
 const CART_STORAGE_KEY = 'c2d_cart';
 
-export const isCartOpen = atom(false);
 export const cartItems = map<Record<string, CartItem>>({});
 
 // Cargar carrito desde localStorage al iniciar
@@ -63,8 +62,6 @@ export function addToCart(product: Product) {
   }
 
   console.log('🛒 Cart now has:', Object.keys(cartItems.get()).length, 'items');
-
-  isCartOpen.set(true);
 }
 
 export function removeFromCart(id: string) {
@@ -78,8 +75,4 @@ export function clearCart() {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(CART_STORAGE_KEY);
   }
-}
-
-export function toggleCart(isOpen: boolean) {
-  isCartOpen.set(isOpen);
 }

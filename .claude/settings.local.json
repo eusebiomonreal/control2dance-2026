@@ -25,7 +25,13 @@
       "Bash(git add:*)",
       "Bash(npx tsc:*)",
       "Bash(npm run build:*)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: add type assertions to webhook Supabase queries\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: add type assertions to webhook Supabase queries\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(node scripts/fix_missing_items.cjs:*)",
+      "Bash(grep:*)",
+      "Bash(git push:*)",
+      "mcp__claude_ai_Stripe__list_payment_intents",
+      "mcp__claude_ai_Stripe__search_stripe_resources",
+      "mcp__claude_ai_Stripe__fetch_stripe_resources"
     ]
   }
 }

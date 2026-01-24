@@ -1,6 +1,5 @@
 ---
 import Header from '../../components/Header';
-import CartDrawer from '../../components/CartDrawer';
 import Footer from '../../components/Footer.astro';
 import ProductDetail from '../../components/ProductDetail';
 import '../../styles/global.css';
@@ -84,7 +83,6 @@ const product = {
 			<ProductDetail client:load slug={slug} />
 		</main>
 
-		<CartDrawer client:idle />
 		<Footer />
 	</body>
 </html>

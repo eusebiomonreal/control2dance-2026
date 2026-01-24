@@ -3,7 +3,6 @@ import Header from '../../components/Header';
 import Filters from '../../components/Filters';
 import ProductGrid from '../../components/ProductGrid';
 import ProductModalWrapper from '../../components/ProductModalWrapper';
-import CartDrawer from '../../components/CartDrawer';
 import Footer from '../../components/Footer.astro';
 import '../../styles/global.css';
 ---
@@ -44,7 +43,6 @@ import '../../styles/global.css';
 		</section>
 
 		<ProductModalWrapper client:idle />
-		<CartDrawer client:idle />
 		<Footer />
 	</body>
 </html>
