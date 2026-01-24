@@ -157,14 +157,34 @@ export async function getDownloadUrl(token: string): Promise<{ url?: string; err
   }
 
   // Generar signed URL desde Supabase Storage
-  const product = downloadToken.product as { master_file_path?: string } | null;
+  const product = downloadToken.product as { master_file_path?: string; catalog_number?: string } | null;
   if (!product?.master_file_path) {
     return { error: 'Archivo no disponible' };
   }
 
+  // El master_file_path puede ser "downloads/C2D-XXX" o solo "C2D-XXX"
+  // Extraemos solo la carpeta del catálogo
+  const filePath = product.master_file_path.replace('downloads/', '');
+  
+  // Listar archivos en la carpeta del producto
+  const { data: files, error: listError } = await supabase.storage
+    .from('downloads')
+    .list(filePath);
+
+  if (listError || !files || files.length === 0) {
+    return { error: 'No se encontraron archivos para descargar' };
+  }
+
+  // Si hay un solo archivo, descargarlo directamente
+  // Si hay varios, crear URL para el primero (TODO: implementar ZIP o selección)
+  const firstFile = files.find(f => f.name.endsWith('.wav') || f.name.endsWith('.zip'));
+  if (!firstFile) {
+    return { error: 'No se encontraron archivos de audio' };
+  }
+
   const { data: signedUrlData, error: urlError } = await supabase.storage
-    .from('masters')
-    .createSignedUrl(product.master_file_path, 60); // 60 segundos
+    .from('downloads')
+    .createSignedUrl(`${filePath}/${firstFile.name}`, 3600); // 1 hora
 
   if (urlError || !signedUrlData) {
     return { error: 'Error generando enlace de descarga' };
