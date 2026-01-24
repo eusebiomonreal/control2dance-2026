@@ -1,5 +1,6 @@
 import { map } from 'nanostores';
 import type { CartItem, Product } from '../types';
+import { showToast } from './toastStore';
 
 const CART_STORAGE_KEY = 'c2d_cart';
 
@@ -62,6 +63,13 @@ export function addToCart(product: Product) {
   }
 
   console.log('🛒 Cart now has:', Object.keys(cartItems.get()).length, 'items');
+
+  // Show toast notification
+  const totalItems = Object.keys(cartItems.get()).length;
+  showToast(
+    `${totalItems} ${totalItems === 1 ? 'producto' : 'productos'} en el carrito`,
+    product.name
+  );
 }
 
 export function removeFromCart(id: string) {
