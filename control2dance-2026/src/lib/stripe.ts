@@ -24,7 +24,8 @@ export async function createCheckoutSession(
   items: LineItem[],
   customerEmail: string,
   successUrl: string,
-  cancelUrl: string
+  cancelUrl: string,
+  userId?: string
 ) {
   const baseUrl = process.env.PUBLIC_SITE_URL || import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4321';
   
@@ -60,7 +61,8 @@ export async function createCheckoutSession(
     success_url: successUrl,
     cancel_url: cancelUrl,
     metadata: {
-      product_ids: items.map(i => i.id).join(',')
+      product_ids: items.map(i => i.id).join(','),
+      user_id: userId || ''
     }
   });
 

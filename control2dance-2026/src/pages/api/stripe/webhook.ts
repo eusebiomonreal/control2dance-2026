@@ -56,10 +56,15 @@ async function handleCheckoutComplete(session: any) {
   console.log('📦 handleCheckoutComplete - Session:', session.id);
   console.log('Email:', session.customer_email);
 
+  // Obtener user_id del metadata de la sesión
+  const userId = session.metadata?.user_id || null;
+  console.log('User ID from metadata:', userId);
+
   // 1. Crear orden en Supabase
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .insert({
+      user_id: userId || null,
       stripe_session_id: session.id,
       stripe_payment_intent: session.payment_intent,
       stripe_customer_id: session.customer,
@@ -118,6 +123,7 @@ async function handleCheckoutComplete(session: any) {
       .from('download_tokens')
       .insert({
         order_item_id: orderItem.id,
+        user_id: userId || null,
         product_id: productId || null,
         token,
         max_downloads: 5,

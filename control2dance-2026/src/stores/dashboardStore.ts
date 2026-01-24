@@ -55,6 +55,7 @@ export async function loadOrders() {
       *,
       items:order_items(
         *,
+        product:products(id, name, cover_image, catalog_number),
         download_token:download_tokens(*)
       )
     `)

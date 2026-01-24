@@ -47,7 +47,8 @@ export default function CheckoutForm() {
             image: item.image,
             catalogNumber: item.catalogNumber
           })),
-          customerEmail: email
+          customerEmail: email,
+          userId: user?.id
         })
       });
 

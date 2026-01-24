@@ -6,13 +6,13 @@ import { searchQuery } from '../stores/productStore';
 import UserMenu from './auth/UserMenu';
 
 const Logo = () => (
-  <div className="flex items-center select-none group cursor-pointer transition-transform duration-300 active:scale-95">
-    <img 
-      src="https://control2dance.es/wp-content/uploads/2022/08/LogoControl2DanceBlanco.png" 
-      alt="Control2Dance Logo" 
+  <a href="/" className="flex items-center select-none group cursor-pointer transition-transform duration-300 active:scale-95">
+    <img
+      src="https://control2dance.es/wp-content/uploads/2022/08/LogoControl2DanceBlanco.png"
+      alt="Control2Dance Logo"
       className="h-8 md:h-10 w-auto object-contain"
     />
-  </div>
+  </a>
 );
 
 export default function Header() {
@@ -32,14 +32,24 @@ export default function Header() {
         <Logo />
         <div className="flex items-center gap-8">
           <div className="relative hidden md:block">
-             <input 
-              type="text" 
-              placeholder="BUSCAR EN EL ARCHIVO..." 
+            <input
+              type="text"
+              placeholder="BUSCAR EN EL ARCHIVO..."
               value={$searchQuery}
-              onChange={e => searchQuery.set(e.target.value)}
+              onChange={e => {
+                searchQuery.set(e.target.value);
+                if (window.location.pathname !== '/catalogo') {
+                  window.location.href = '/catalogo';
+                }
+              }}
+              onFocus={() => {
+                if (window.location.pathname !== '/catalogo') {
+                  window.location.href = '/catalogo';
+                }
+              }}
               className="bg-white/5 border border-white/10 rounded-2xl px-10 py-3 text-[10px] font-black w-80 outline-none focus:border-[#ff4d7d] transition-all uppercase tracking-widest"
-             />
-             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
+            />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
           </div>
           {isMounted && <UserMenu />}
           <button onClick={() => toggleCart(true)} className="relative p-3 bg-white/5 border border-white/10 rounded-2xl hover:scale-110 transition-transform">

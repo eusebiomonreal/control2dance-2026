@@ -4,9 +4,10 @@ import { createCheckoutSession, type LineItem } from '../../../lib/stripe';
 export const POST: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
-    const { items, customerEmail } = body as {
+    const { items, customerEmail, userId } = body as {
       items: LineItem[];
       customerEmail: string;
+      userId?: string;
     };
 
     // Validaciones
@@ -32,7 +33,8 @@ export const POST: APIRoute = async ({ request }) => {
       items,
       customerEmail,
       successUrl,
-      cancelUrl
+      cancelUrl,
+      userId
     );
 
     return new Response(
