@@ -19,16 +19,16 @@ export default function AccountStats() {
       color: 'bg-green-500/10 text-green-400',
     },
     {
-      label: 'Descargas',
-      value: stats.totalDownloads,
-      icon: Download,
-      color: 'bg-blue-500/10 text-blue-400',
-    },
-    {
       label: 'Productos',
       value: stats.totalProducts,
       icon: Music,
       color: 'bg-purple-500/10 text-purple-400',
+    },
+    {
+      label: 'Descargas Usadas',
+      value: stats.totalDownloads,
+      icon: Download,
+      color: 'bg-blue-500/10 text-blue-400',
     },
   ];
 

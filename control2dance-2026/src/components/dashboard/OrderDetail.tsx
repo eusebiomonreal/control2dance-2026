@@ -1,9 +1,33 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { ArrowLeft, Package, CreditCard, Calendar, Receipt, Download, Loader2, AlertCircle, FileText } from 'lucide-react';
+import { getDownloadUrl, getDownloadFiles, incrementDownloadCount } from '../../stores/dashboardStore';
+import { ArrowLeft, Package, CreditCard, Calendar, Receipt, Download, Loader2, AlertCircle, FileText, Music, CheckCircle } from 'lucide-react';
 
 interface OrderDetailProps {
   orderId: string;
+}
+
+interface DownloadToken {
+  id: string;
+  token: string;
+  download_count: number;
+  max_downloads: number;
+  expires_at: string;
+  is_active: boolean;
+  product_id: string;
+}
+
+interface OrderItem {
+  id: string;
+  product_id: string;
+  product_name: string;
+  product_catalog_number: string;
+  price: number;
+  product?: {
+    cover_image: string | null;
+    download_path: string | null;
+  };
+  download_token?: DownloadToken | null;
 }
 
 interface Order {
@@ -18,15 +42,12 @@ interface Order {
   customer_email: string;
   customer_name: string;
   stripe_payment_intent: string | null;
-  items: {
-    id: string;
-    product_name: string;
-    product_catalog_number: string;
-    price: number;
-    product?: {
-      cover_image: string | null;
-    };
-  }[];
+  items: OrderItem[];
+}
+
+interface FileInfo {
+  name: string;
+  size: number;
 }
 
 export default function OrderDetail({ orderId }: OrderDetailProps) {
@@ -35,6 +56,14 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
   const [error, setError] = useState<string | null>(null);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
+  
+  // Estado para descargas
+  const [expandedItem, setExpandedItem] = useState<string | null>(null);
+  const [files, setFiles] = useState<Record<string, FileInfo[]>>({});
+  const [filesLoading, setFilesLoading] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [downloadedFiles, setDownloadedFiles] = useState<Set<string>>(new Set());
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   useEffect(() => {
     loadOrder();
@@ -47,7 +76,8 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
         *,
         items:order_items(
           *,
-          product:products(cover_image)
+          product:products(cover_image, download_path),
+          download_tokens(*)
         )
       `)
       .eq('id', orderId)
@@ -56,9 +86,142 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
     if (error || !data) {
       setError('Pedido no encontrado');
     } else {
-      setOrder(data as Order);
+      // Transformar download_tokens array a download_token objeto
+      const transformedOrder = {
+        ...data,
+        items: (data.items || []).map((item: any) => ({
+          ...item,
+          download_token: item.download_tokens?.[0] || null
+        }))
+      };
+      setOrder(transformedOrder as Order);
     }
     setLoading(false);
+  };
+
+  const loadFiles = async (item: OrderItem) => {
+    if (!item.download_token?.token) return;
+    
+    const itemId = item.id;
+    setFilesLoading(itemId);
+    setDownloadError(null);
+    
+    const result = await getDownloadFiles(item.download_token.token);
+    
+    if (result.error) {
+      setDownloadError(result.error);
+    } else {
+      setFiles(prev => ({ ...prev, [itemId]: result.files || [] }));
+    }
+    
+    setFilesLoading(null);
+  };
+
+  const toggleExpand = async (item: OrderItem) => {
+    if (expandedItem === item.id) {
+      setExpandedItem(null);
+    } else {
+      setExpandedItem(item.id);
+      if (!files[item.id]) {
+        await loadFiles(item);
+      }
+    }
+  };
+
+  const handleDownload = async (item: OrderItem, fileName: string) => {
+    if (!item.download_token?.token) return;
+
+    setDownloading(fileName);
+    setDownloadError(null);
+
+    const result = await getDownloadUrl(item.download_token.token, fileName);
+
+    if (result.error) {
+      setDownloadError(result.error);
+      setDownloading(null);
+      return;
+    }
+
+    if (result.url) {
+      const link = document.createElement('a');
+      link.href = result.url;
+      link.download = fileName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      
+      setTimeout(() => {
+        document.body.removeChild(link);
+      }, 100);
+
+      setDownloadedFiles(prev => new Set(prev).add(fileName));
+      
+      // Actualizar contador en el estado local
+      if (order) {
+        setOrder({
+          ...order,
+          items: order.items.map(i => 
+            i.id === item.id && i.download_token
+              ? { ...i, download_token: { ...i.download_token, download_count: i.download_token.download_count + 1 } }
+              : i
+          )
+        });
+      }
+    }
+
+    setDownloading(null);
+  };
+
+  const handleDownloadAll = async (item: OrderItem) => {
+    if (!item.download_token?.token || !files[item.id]) return;
+
+    setDownloadError(null);
+    const itemFiles = files[item.id];
+
+    for (const file of itemFiles) {
+      if (downloadedFiles.has(file.name)) continue;
+      
+      setDownloading(file.name);
+      const result = await getDownloadUrl(item.download_token.token, file.name, true);
+
+      if (result.error) {
+        setDownloadError(result.error);
+        break;
+      }
+
+      if (result.url) {
+        const link = document.createElement('a');
+        link.href = result.url;
+        link.download = file.name;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        
+        setTimeout(() => {
+          document.body.removeChild(link);
+        }, 100);
+        
+        setDownloadedFiles(prev => new Set(prev).add(file.name));
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+    }
+
+    // Incrementar contador solo 1 vez al final
+    await incrementDownloadCount(item.download_token.token);
+    
+    // Actualizar estado local
+    if (order) {
+      setOrder({
+        ...order,
+        items: order.items.map(i => 
+          i.id === item.id && i.download_token
+            ? { ...i, download_token: { ...i.download_token, download_count: i.download_token.download_count + 1 } }
+            : i
+        )
+      });
+    }
+
+    setDownloading(null);
   };
 
   const downloadInvoice = async () => {
@@ -116,6 +279,20 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const formatSize = (bytes: number) => {
+    if (bytes === 0) return '';
+    const mb = bytes / (1024 * 1024);
+    return `${mb.toFixed(1)} MB`;
+  };
+
+  const getDownloadStatus = (token: DownloadToken | null | undefined) => {
+    if (!token) return { available: false, reason: 'Sin token' };
+    if (!token.is_active) return { available: false, reason: 'Desactivado' };
+    if (new Date(token.expires_at) < new Date()) return { available: false, reason: 'Expirado' };
+    if (token.download_count >= token.max_downloads) return { available: false, reason: 'Límite alcanzado' };
+    return { available: true, remaining: token.max_downloads - token.download_count };
   };
 
   if (loading) {
@@ -189,32 +366,135 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
         </div>
       </div>
 
-      {/* Productos */}
+      {/* Productos con descargas integradas */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-zinc-800">
           <h2 className="text-lg font-semibold text-white">Productos</h2>
         </div>
         <div className="divide-y divide-zinc-800">
-          {order.items?.map((item) => (
-            <div key={item.id} className="flex items-center gap-4 p-5">
-              <div className="w-14 h-14 bg-zinc-800 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                {item.product?.cover_image ? (
-                  <img
-                    src={item.product.cover_image}
-                    alt={item.product_name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <Package className="w-6 h-6 text-zinc-500" />
+          {order.items?.map((item) => {
+            const downloadStatus = getDownloadStatus(item.download_token);
+            const isExpanded = expandedItem === item.id;
+            const itemFiles = files[item.id] || [];
+            
+            return (
+              <div key={item.id} className="flex flex-col">
+                {/* Producto */}
+                <div className="flex items-center gap-4 p-5">
+                  <div className="w-14 h-14 bg-zinc-800 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {item.product?.cover_image ? (
+                      <img
+                        src={item.product.cover_image}
+                        alt={item.product_name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Package className="w-6 h-6 text-zinc-500" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-white truncate">{item.product_name}</p>
+                    <p className="text-sm text-zinc-400">{item.product_catalog_number}</p>
+                    {order.status === 'paid' && downloadStatus.available && (
+                      <p className="text-xs text-green-400 mt-1">
+                        {downloadStatus.remaining} descarga{downloadStatus.remaining !== 1 ? 's' : ''} disponible{downloadStatus.remaining !== 1 ? 's' : ''}
+                      </p>
+                    )}
+                    {order.status === 'paid' && !downloadStatus.available && (
+                      <p className="text-xs text-zinc-500 mt-1">{downloadStatus.reason}</p>
+                    )}
+                  </div>
+                  <p className="text-white font-medium mr-4">€{item.price.toFixed(2)}</p>
+                  
+                  {/* Botón de descargar */}
+                  {order.status === 'paid' && downloadStatus.available && (
+                    <button
+                      onClick={() => toggleExpand(item)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                        isExpanded 
+                          ? 'bg-indigo-600 text-white' 
+                          : 'bg-zinc-800 hover:bg-zinc-700 text-white'
+                      }`}
+                    >
+                      <Download className="w-4 h-4" />
+                      <span className="hidden sm:inline">Descargar</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Panel de archivos expandido */}
+                {isExpanded && (
+                  <div className="px-5 pb-5 pt-0">
+                    <div className="bg-zinc-800/50 rounded-xl p-4 ml-[4.5rem]">
+                      {filesLoading === item.id ? (
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+                          <span className="ml-2 text-sm text-zinc-400">Cargando archivos...</span>
+                        </div>
+                      ) : itemFiles.length > 0 ? (
+                        <div className="space-y-2">
+                          {/* Botón descargar todos */}
+                          {itemFiles.length > 1 && (
+                            <button
+                              onClick={() => handleDownloadAll(item)}
+                              disabled={downloading !== null}
+                              className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium rounded-lg transition-colors mb-3"
+                            >
+                              {downloading ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Download className="w-4 h-4" />
+                              )}
+                              Descargar todos ({itemFiles.length} archivos)
+                            </button>
+                          )}
+                          
+                          {/* Lista de archivos */}
+                          {itemFiles.map((file) => (
+                            <div
+                              key={file.name}
+                              className="flex items-center gap-3 p-3 bg-zinc-900/50 rounded-lg"
+                            >
+                              <Music className="w-5 h-5 text-indigo-400 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm text-white truncate">{file.name}</p>
+                                {file.size > 0 && (
+                                  <p className="text-xs text-zinc-500">{formatSize(file.size)}</p>
+                                )}
+                              </div>
+                              {downloadedFiles.has(file.name) ? (
+                                <CheckCircle className="w-5 h-5 text-green-400" />
+                              ) : (
+                                <button
+                                  onClick={() => handleDownload(item, file.name)}
+                                  disabled={downloading !== null}
+                                  className="p-2 bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 rounded-lg transition-colors"
+                                >
+                                  {downloading === file.name ? (
+                                    <Loader2 className="w-4 h-4 text-white animate-spin" />
+                                  ) : (
+                                    <Download className="w-4 h-4 text-white" />
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-zinc-400 text-center py-4">
+                          No hay archivos disponibles
+                        </p>
+                      )}
+                      
+                      {downloadError && (
+                        <p className="text-sm text-red-400 mt-3 text-center">{downloadError}</p>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-white truncate">{item.product_name}</p>
-                <p className="text-sm text-zinc-400">{item.product_catalog_number}</p>
-              </div>
-              <p className="text-white font-medium">€{item.price.toFixed(2)}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -251,30 +531,21 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
         )}
       </div>
 
-      {/* Acciones */}
-      {order.status === 'paid' && (
-        <div className="flex flex-col sm:flex-row gap-3">
-          <a
-            href="/dashboard/downloads"
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl transition-colors"
+      {/* Factura */}
+      {order.status === 'paid' && order.stripe_payment_intent && (
+        <div className="flex justify-center">
+          <button
+            onClick={downloadInvoice}
+            disabled={invoiceLoading}
+            className="flex items-center gap-2 py-3 px-6 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
           >
-            <Download className="w-5 h-5" />
-            Ir a mis descargas
-          </a>
-          {order.stripe_payment_intent && (
-            <button
-              onClick={downloadInvoice}
-              disabled={invoiceLoading}
-              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
-            >
-              {invoiceLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <FileText className="w-5 h-5" />
-              )}
-              Descargar factura
-            </button>
-          )}
+            {invoiceLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <FileText className="w-5 h-5" />
+            )}
+            Descargar factura
+          </button>
         </div>
       )}
 
@@ -283,9 +554,8 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
       )}
 
       {/* Info cliente */}
-      <div className="text-xs text-zinc-500 space-y-1">
-        <p>Cliente: {order.customer_name}</p>
-        <p>Email: {order.customer_email}</p>
+      <div className="text-xs text-zinc-500 space-y-1 text-center">
+        <p>Cliente: {order.customer_name} • {order.customer_email}</p>
       </div>
     </div>
   );
