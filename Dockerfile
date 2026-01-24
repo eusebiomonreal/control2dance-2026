@@ -3,14 +3,14 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files from subfolder
+COPY control2dance-2026/package*.json ./
 
 # Install dependencies
 RUN npm ci
 
-# Copy source code
-COPY . .
+# Copy source code from subfolder
+COPY control2dance-2026/ .
 
 # Build the app
 RUN npm run build
