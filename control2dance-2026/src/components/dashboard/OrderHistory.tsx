@@ -112,17 +112,20 @@ export default function OrderHistory({ limit, showViewAll = false }: OrderHistor
                       const isLow = remaining === 1;
                       
                       return (
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            isExhausted 
-                              ? 'bg-red-500/10 text-red-400' 
-                              : isLow 
-                                ? 'bg-yellow-500/10 text-yellow-400'
-                                : 'bg-green-500/10 text-green-400'
-                          }`}>
-                            {isExhausted ? 'Agotadas' : `${remaining}/${item.download_token.max_downloads}`}
-                          </span>
-                        </div>
+                        <span className={`text-xs ${
+                          isExhausted 
+                            ? 'text-red-400' 
+                            : isLow 
+                              ? 'text-yellow-400'
+                              : 'text-zinc-400'
+                        }`}>
+                          {isExhausted 
+                            ? 'Sin descargas' 
+                            : remaining === 1 
+                              ? '1 descarga restante'
+                              : `${remaining} descargas restantes`
+                          }
+                        </span>
                       );
                     })()
                   )}
