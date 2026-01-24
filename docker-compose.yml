@@ -3,6 +3,11 @@ services:
     build:
       context: ./control2dance-2026
       dockerfile: Dockerfile
+      args:
+        - PUBLIC_SUPABASE_URL=${PUBLIC_SUPABASE_URL}
+        - PUBLIC_SUPABASE_ANON_KEY=${PUBLIC_SUPABASE_ANON_KEY}
+        - PUBLIC_STRIPE_PUBLISHABLE_KEY=${PUBLIC_STRIPE_PUBLISHABLE_KEY}
+        - PUBLIC_SITE_URL=${PUBLIC_SITE_URL}
     ports:
       - "4321:4321"
     environment:
