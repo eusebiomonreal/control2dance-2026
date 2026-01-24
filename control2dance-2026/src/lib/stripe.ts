@@ -60,6 +60,17 @@ export async function createCheckoutSession(
     customer_email: customerEmail,
     success_url: successUrl,
     cancel_url: cancelUrl,
+    // Habilitar generación de factura automática
+    invoice_creation: {
+      enabled: true,
+      invoice_data: {
+        description: 'Control2Dance - Digital Masters',
+        footer: 'Control2Dance - www.control2dance.es - Gracias por tu compra',
+        rendering_options: {
+          amount_tax_display: 'include_inclusive_tax'
+        }
+      }
+    },
     metadata: {
       product_ids: items.map(i => i.id).join(','),
       user_id: userId || ''
