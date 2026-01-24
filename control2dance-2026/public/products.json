@@ -3,7 +3,7 @@
     "id": "3154cd1d-1676-4a41-a804-8ac7d2242919",
     "name": "Chris-Maxxx",
     "brand": "Da Nu Style Vol 4",
-    "price": 3.99,
+    "price": 2.99,
     "description": "Restauración digital de alta fidelidad. Archivo maestro extraído directamente del laboratorio de Eusebio Monreal.",
     "image": "https://api.control2dance.es/storage/v1/object/public/covers/da-nu-style-vol-4-chris-maxxx-copy.jpg",
     "audioPlaylistId": "6741",
@@ -4678,6 +4678,42 @@
     "label": "Control2Dance Records",
     "catalogNumber": "C2D-11052",
     "released": "2020",
+    "styles": [
+      "Hard House",
+      "Bumping",
+      "Makina"
+    ],
+    "genre": "Electronic"
+  },
+  {
+    "id": "a1b2c3d4-5678-90ab-cdef-123456789001",
+    "name": "01 Scratch Ep",
+    "brand": "Emo Dj - Dj Mito",
+    "price": 3.99,
+    "description": "Restauración digital de alta fidelidad. Archivo maestro extraído directamente del laboratorio de Eusebio Monreal.",
+    "image": "https://api.control2dance.es/storage/v1/object/public/covers/01-scratch-ep-emo-dj-dj-mito.jpg",
+    "audioPlaylistId": "scratch01",
+    "audioUrls": [],
+    "category": "Digital Master",
+    "rating": 5,
+    "stock": 999,
+    "tracks": [
+      "Scratch - Scratch (Original) (A1)",
+      "Scratch - Scratch (Remix) (A2)",
+      "Scratch - Haus (B1)",
+      "Scratch - Amnyx (B2)"
+    ],
+    "downloadFiles": [
+      "C2D-SCRATCH-01/Scratch-Original.wav",
+      "C2D-SCRATCH-01/Scratch-Remix.wav",
+      "C2D-SCRATCH-01/Scratch-Haus.wav",
+      "C2D-SCRATCH-01/Scratch-Amnyx.wav"
+    ],
+    "youtubeUrls": [],
+    "year": "1998",
+    "label": "Control2Dance Records",
+    "catalogNumber": "C2D-SCRATCH-01",
+    "released": "1998",
     "styles": [
       "Hard House",
       "Bumping",
