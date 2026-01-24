@@ -1,104 +1,40 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { getDownloadUrl } from '../../stores/dashboardStore';
 import { Download, Loader2, AlertCircle, CheckCircle, Music, Clock, FileAudio } from 'lucide-react';
 
 interface DownloadPageProps {
   token: string | undefined;
 }
 
-interface FileInfo {
-  name: string;
-  size: number;
-}
-
-interface DownloadInfo {
-  product: {
-    name: string;
-    catalog_number: string;
-  };
-  files: FileInfo[];
-  downloads_remaining: number;
-  expires_at: string;
-}
-
 export default function DownloadPage({ token }: DownloadPageProps) {
-  const [loading, setLoading] = useState(true);
-  const [downloading, setDownloading] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [downloadInfo, setDownloadInfo] = useState<DownloadInfo | null>(null);
-  const [downloadedFiles, setDownloadedFiles] = useState<Set<string>>(new Set());
+  const [downloadStarted, setDownloadStarted] = useState(false);
 
-  useEffect(() => {
-    if (token) {
-      loadFiles();
-    } else {
-      setLoading(false);
+  const handleDownload = async () => {
+    if (!token) {
+      setError('Token de descarga no válido');
+      return;
     }
-  }, [token]);
 
-  const loadFiles = async () => {
-    try {
-      const response = await fetch(`/api/download/${token}/files`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Error cargando archivos');
-        setLoading(false);
-        return;
-      }
-
-      setDownloadInfo(data);
-    } catch (err) {
-      setError('Error de conexión');
-    }
-    setLoading(false);
-  };
-
-  const handleDownload = async (fileName: string) => {
-    if (!token) return;
-
-    setDownloading(fileName);
+    setLoading(true);
     setError(null);
 
-    try {
-      const response = await fetch(`/api/download/${token}?file=${encodeURIComponent(fileName)}`);
+    const result = await getDownloadUrl(token);
 
-      if (!response.ok) {
-        const data = await response.json();
-        setError(data.error || 'Error al descargar');
-        setDownloading(null);
-        return;
-      }
-
-      const blob = await response.blob();
-      const contentDisposition = response.headers.get('Content-Disposition');
-      let filename = fileName;
-
-      if (contentDisposition) {
-        const match = contentDisposition.match(/filename="(.+)"/);
-        if (match) filename = decodeURIComponent(match[1]);
-      }
-
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-
-      setDownloadedFiles(prev => new Set(prev).add(fileName));
-    } catch (err) {
-      setError('Error de conexión');
+    if (result.error) {
+      setError(result.error);
+      setLoading(false);
+      return;
     }
 
-    setDownloading(null);
-  };
+    if (result.url) {
+      setDownloadStarted(true);
+      // Abrir URL de descarga en nueva pestaña
+      window.open(result.url, '_blank');
+    }
 
-  const formatSize = (bytes: number) => {
-    if (bytes === 0) return '';
-    const mb = bytes / (1024 * 1024);
-    return `${mb.toFixed(1)} MB`;
+    setLoading(false);
   };
 
   if (!token) {
@@ -123,111 +59,69 @@ export default function DownloadPage({ token }: DownloadPageProps) {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="w-full max-w-md mx-auto text-center">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8">
-          <Loader2 className="w-10 h-10 text-indigo-400 animate-spin mx-auto mb-4" />
-          <p className="text-zinc-400">Cargando archivos...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && !downloadInfo) {
-    return (
-      <div className="w-full max-w-md mx-auto text-center">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8">
-          <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-red-400" />
-          </div>
-          <h1 className="text-xl font-bold text-white mb-2">Error</h1>
-          <p className="text-zinc-400 mb-6">{error}</p>
-          <a
-            href="/"
-            className="inline-block py-3 px-6 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg transition-colors"
-          >
-            Volver al inicio
-          </a>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full max-w-lg mx-auto">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FileAudio className="w-8 h-8 text-indigo-400" />
-          </div>
-          <h1 className="text-xl font-bold text-white mb-1">
-            {downloadInfo?.product.name}
-          </h1>
-          <p className="text-zinc-500 text-sm">
-            {downloadInfo?.product.catalog_number}
-          </p>
+    <div className="w-full max-w-md mx-auto">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 text-center">
+        {/* Icon */}
+        <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+          <FileAudio className="w-10 h-10 text-indigo-400" />
         </div>
+
+        <h1 className="text-2xl font-bold text-white mb-2">Descarga tu archivo</h1>
+        <p className="text-zinc-400 mb-8">
+          Haz clic en el botón para iniciar la descarga de tu master digital en formato WAV.
+        </p>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-3">
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-3 text-left">
             <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
             <p className="text-red-400 text-sm">{error}</p>
           </div>
         )}
 
-        {/* Files list */}
-        <div className="space-y-3 mb-6">
-          <p className="text-sm text-zinc-400 mb-3">
-            {downloadInfo?.files.length} archivo{downloadInfo?.files.length !== 1 ? 's' : ''} disponible{downloadInfo?.files.length !== 1 ? 's' : ''}:
-          </p>
-          
-          {downloadInfo?.files.map((file) => (
-            <div
-              key={file.name}
-              className="flex items-center justify-between p-4 bg-zinc-800/50 rounded-xl border border-zinc-700/50"
-            >
-              <div className="flex items-center gap-3">
-                <Music className="w-5 h-5 text-indigo-400" />
-                <div>
-                  <p className="text-white text-sm font-medium">{file.name}</p>
-                  {file.size > 0 && (
-                    <p className="text-zinc-500 text-xs">{formatSize(file.size)}</p>
-                  )}
-                </div>
-              </div>
-              
-              <button
-                onClick={() => handleDownload(file.name)}
-                disabled={downloading !== null}
-                className="flex items-center gap-2 py-2 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/50 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                {downloading === file.name ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : downloadedFiles.has(file.name) ? (
-                  <CheckCircle className="w-4 h-4 text-green-400" />
-                ) : (
-                  <Download className="w-4 h-4" />
-                )}
-                {downloading === file.name ? 'Descargando...' : downloadedFiles.has(file.name) ? 'Descargado' : 'Descargar'}
-              </button>
-            </div>
-          ))}
-        </div>
+        {downloadStarted && !error && (
+          <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-3 text-left">
+            <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+            <p className="text-green-400 text-sm">
+              La descarga ha comenzado. Si no inicia automáticamente, haz clic de nuevo.
+            </p>
+          </div>
+        )}
+
+        <button
+          onClick={handleDownload}
+          disabled={loading}
+          className="w-full py-4 px-6 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/50 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-3"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Generando enlace...
+            </>
+          ) : (
+            <>
+              <Download className="w-5 h-5" />
+              {downloadStarted ? 'Descargar de nuevo' : 'Descargar archivo'}
+            </>
+          )}
+        </button>
 
         {/* Info */}
-        <div className="pt-4 border-t border-zinc-800 space-y-2">
-          <div className="flex items-center gap-2 text-xs text-zinc-500">
-            <Clock className="w-3 h-3" />
-            <span>Descargas restantes: {downloadInfo?.downloads_remaining}</span>
+        <div className="mt-8 pt-6 border-t border-zinc-800 space-y-3 text-left">
+          <div className="flex items-center gap-3 text-sm text-zinc-400">
+            <Music className="w-4 h-4" />
+            <span>Formato WAV de alta calidad</span>
+          </div>
+          <div className="flex items-center gap-3 text-sm text-zinc-400">
+            <Clock className="w-4 h-4" />
+            <span>Enlace válido por tiempo limitado</span>
           </div>
         </div>
       </div>
 
       {/* Help */}
       <p className="mt-6 text-sm text-zinc-500 text-center">
-        ¿Problemas?{' '}
+        ¿Problemas con la descarga?{' '}
         <a href="mailto:soporte@control2dance.es" className="text-indigo-400 hover:text-indigo-300">
           Contacta con soporte
         </a>
