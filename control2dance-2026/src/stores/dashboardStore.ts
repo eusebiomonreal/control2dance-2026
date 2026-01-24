@@ -49,6 +49,11 @@ export async function loadDashboardData() {
 }
 
 export async function loadOrders() {
+  // Debug: verificar el usuario actual
+  const { data: { user } } = await supabase.auth.getUser();
+  console.log('Current user ID:', user?.id);
+  console.log('Current user email:', user?.email);
+
   const { data: orders, error } = await supabase
     .from('orders')
     .select(`
@@ -61,6 +66,7 @@ export async function loadOrders() {
     `)
     .order('created_at', { ascending: false }) as any;
 
+  console.log('Orders loaded:', orders?.length || 0, orders);
   if (error) {
     console.error('Error loading orders:', error);
     return;
