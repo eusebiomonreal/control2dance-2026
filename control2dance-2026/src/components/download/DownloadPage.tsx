@@ -93,10 +93,27 @@ export default function DownloadPage({ token }: DownloadPageProps) {
       }
 
       if (result.url) {
-        window.open(result.url, '_blank');
-        setDownloadedFiles(prev => new Set(prev).add(file.name));
-        // Pequeña pausa entre descargas para evitar bloqueo del navegador
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Usar fetch + blob para descargar sin popup blocker
+        try {
+          const response = await fetch(result.url);
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = file.name;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+          
+          setDownloadedFiles(prev => new Set(prev).add(file.name));
+          // Pausa entre descargas
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (err) {
+          setError('Error descargando archivo');
+          allSuccess = false;
+          break;
+        }
       }
     }
 
