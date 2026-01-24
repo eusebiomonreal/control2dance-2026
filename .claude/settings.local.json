@@ -24,7 +24,8 @@
       "Bash(node scripts/sync_product_ids.cjs:*)",
       "Bash(git add:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: add type assertions to webhook Supabase queries\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }
