@@ -65,7 +65,11 @@ export default function OrderHistory({ limit, showViewAll = false }: OrderHistor
 
       <div className="divide-y divide-zinc-800">
         {displayOrders.map((order) => (
-          <div key={order.id} className="p-4 hover:bg-zinc-800/50 transition-colors">
+          <a 
+            key={order.id} 
+            href={`/dashboard/orders/${order.id}`}
+            className="block p-4 hover:bg-zinc-800/50 transition-colors cursor-pointer"
+          >
             <div className="flex items-start justify-between mb-3">
               <div>
                 <p className="text-sm text-zinc-400">
@@ -107,7 +111,7 @@ export default function OrderHistory({ limit, showViewAll = false }: OrderHistor
                 </div>
               ))}
             </div>
-          </div>
+          </a>
         ))}
       </div>
     </div>
