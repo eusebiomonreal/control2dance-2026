@@ -30,7 +30,7 @@ export const GET: APIRoute = async ({ request }) => {
     const { data: orders, error } = await supabase
       .from('orders')
       .select('stripe_session_id, stripe_payment_intent, total, created_at')
-      .gte('created_at', new Date(startDate * 1000).toISOString());
+      .gte('created_at', new Date(startDate * 1000).toISOString()) as { data: { stripe_session_id: string; stripe_payment_intent: string; total: number; created_at: string }[] | null; error: any };
 
     if (error) {
       console.error('Error fetching orders:', error);
@@ -42,7 +42,7 @@ export const GET: APIRoute = async ({ request }) => {
     // Encontrar sesiones de Stripe que no están en Supabase
     const missingSessions = paidSessions.filter(session => 
       !supabaseSessionIds.has(session.id) && 
-      !supabasePaymentIntents.has(session.payment_intent)
+      !supabasePaymentIntents.has(String(session.payment_intent || ''))
     );
 
     // Calcular totales
@@ -121,7 +121,7 @@ export const POST: APIRoute = async ({ request }) => {
       .from('orders')
       .select('id')
       .eq('stripe_session_id', sessionId)
-      .single();
+      .single() as { data: { id: string } | null; error: any };
 
     if (existing) {
       return new Response(JSON.stringify({ error: 'Pedido ya existe', orderId: existing.id }), {

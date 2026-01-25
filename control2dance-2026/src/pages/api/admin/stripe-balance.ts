@@ -34,7 +34,7 @@ export const GET: APIRoute = async ({ request }) => {
     const { data: orders, error } = await supabase
       .from('orders')
       .select('stripe_session_id, total, status, created_at')
-      .gte('created_at', thirtyDaysAgoISO);
+      .gte('created_at', thirtyDaysAgoISO) as { data: { stripe_session_id: string; total: number; status: string; created_at: string }[] | null; error: any };
 
     if (error) {
       console.error('Error fetching orders:', error);
