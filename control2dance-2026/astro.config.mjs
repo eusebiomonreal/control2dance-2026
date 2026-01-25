@@ -14,6 +14,9 @@ export default defineConfig({
   vite: {
     plugins: [tailwindcss()],
   },
+  security: {
+    checkOrigin: false  // Permitir webhooks externos (Stripe)
+  },
   redirects: {
     '/tienda': '/catalogo',
     '/mi-cuenta': '/dashboard',

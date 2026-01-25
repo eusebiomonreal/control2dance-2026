@@ -3,7 +3,11 @@ import { constructWebhookEvent, stripe } from '../../../lib/stripe';
 import { createServerClient } from '../../../lib/supabase';
 import { nanoid } from 'nanoid';
 
+// Desactivar verificación de origen para webhooks externos
+export const prerender = false;
+
 export const POST: APIRoute = async ({ request }) => {
+  // Stripe envía webhooks desde sus servidores, no verificar origen
   const signature = request.headers.get('stripe-signature');
 
   console.log('🔔 Webhook received');
