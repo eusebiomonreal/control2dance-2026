@@ -8,8 +8,8 @@ import { createClient } from '@supabase/supabase-js';
 
 export const GET: APIRoute = async ({ request }) => {
   try {
-    const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-    const serviceKey = import.meta.env.SUPABASE_SERVICE_KEY;
+    const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL;
+    const serviceKey = import.meta.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
     if (!serviceKey) {
       return new Response(JSON.stringify({ error: 'Service key not configured' }), {
