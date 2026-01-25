@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../lib/supabase';
 import {
   ArrowLeft,
   User,
@@ -22,10 +22,6 @@ import {
   RotateCcw,
   AlertTriangle
 } from 'lucide-react';
-
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface DownloadLog {
   id: string;
