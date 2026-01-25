@@ -1,34 +1,64 @@
 ---
 import Header from '../../components/Header';
 import Footer from '../../components/Footer.astro';
-import ProductDetail from '../../components/ProductDetail';
+import ProductPage from '../../components/ProductPage';
 import Toast from '../../components/Toast';
 import '../../styles/global.css';
+import { productService } from '../../services/productService';
+import type { Product } from '../../types';
 
-// Esta página se renderiza dinámicamente en servidor
-export const prerender = false;
+// SSG: Generar páginas estáticas para todos los productos
+export const prerender = true;
+
+export async function getStaticPaths() {
+	const products = await productService.getProducts();
+
+	return products.map((product, index) => {
+		// Usar el slug del producto directamente de la DB
+		const slug = product.slug || product.catalogNumber?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || product.id;
+
+		// Obtener producto anterior y siguiente
+		const prevProduct = index > 0 ? products[index - 1] : null;
+		const nextProduct = index < products.length - 1 ? products[index + 1] : null;
+
+		return {
+			params: { slug },
+			props: { 
+				product,
+				prevProduct: prevProduct ? {
+					slug: prevProduct.slug || prevProduct.catalogNumber?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || prevProduct.id,
+					name: prevProduct.name,
+					image: prevProduct.image
+				} : null,
+				nextProduct: nextProduct ? {
+					slug: nextProduct.slug || nextProduct.catalogNumber?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || nextProduct.id,
+					name: nextProduct.name,
+					image: nextProduct.image
+				} : null
+			}
+		};
+	});
+}
+
+interface Props {
+	product: Product;
+	prevProduct: { slug: string; name: string; image: string } | null;
+	nextProduct: { slug: string; name: string; image: string } | null;
+}
 
 const { slug } = Astro.params;
+const { product, prevProduct, nextProduct } = Astro.props as Props;
 
-// TODO: Fetch product from Supabase by slug
-// Por ahora usamos datos de ejemplo
-const product = {
-  id: slug,
-  slug: slug,
-  name: 'Producto de ejemplo',
-  brand: 'Control2Dance',
-  description: 'Descripción del producto',
-  price: 3.99,
-  image: '/placeholder.jpg',
-  catalogNumber: 'C2D-001',
-  year: '2024',
-  genre: 'House',
-  styles: ['Deep House', 'Tech House'],
-  label: 'Control2Dance Records',
-  country: 'Spain',
-  tracks: ['Track 1', 'Track 2'],
-  audioUrls: []
-};
+// Si no hay producto (fallback), intentar cargar dinámicamente
+let finalProduct = product;
+if (!finalProduct && slug) {
+	finalProduct = await productService.getProductBySlug(slug) as Product;
+}
+
+// Si aún no hay producto, redirigir a 404
+if (!finalProduct) {
+	return Astro.redirect('/404');
+}
 ---
 
 <html lang="es">
@@ -37,40 +67,42 @@ const product = {
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
-		<title>{product.name} | Control2Dance Records</title>
-		<meta name="description" content={product.description} />
+		<title>{finalProduct.name} - {finalProduct.brand} | Control2Dance Records</title>
+		<meta name="description" content={finalProduct.description || `${finalProduct.name} por ${finalProduct.brand}. Descarga digital en alta calidad.`} />
 
 		<!-- Open Graph -->
-		<meta property="og:title" content={`${product.name} | Control2Dance Records`} />
-		<meta property="og:description" content={product.description} />
-		<meta property="og:image" content={product.image} />
+		<meta property="og:title" content={`${finalProduct.name} | Control2Dance Records`} />
+		<meta property="og:description" content={finalProduct.description || `${finalProduct.name} por ${finalProduct.brand}`} />
+		<meta property="og:image" content={finalProduct.image} />
 		<meta property="og:type" content="product" />
 		<meta property="og:url" content={`https://control2dance.es/catalogo/${slug}`} />
 
 		<!-- Twitter Card -->
 		<meta name="twitter:card" content="summary_large_image" />
-		<meta name="twitter:title" content={product.name} />
-		<meta name="twitter:description" content={product.description} />
-		<meta name="twitter:image" content={product.image} />
+		<meta name="twitter:title" content={finalProduct.name} />
+		<meta name="twitter:description" content={finalProduct.description || `${finalProduct.name} por ${finalProduct.brand}`} />
+		<meta name="twitter:image" content={finalProduct.image} />
 
 		<!-- Structured Data -->
 		<script type="application/ld+json" set:html={JSON.stringify({
 			"@context": "https://schema.org",
 			"@type": "Product",
-			"name": product.name,
-			"description": product.description,
-			"image": product.image,
+			"name": finalProduct.name,
+			"description": finalProduct.description,
+			"image": finalProduct.image,
 			"brand": {
 				"@type": "Brand",
-				"name": product.brand
+				"name": finalProduct.brand
 			},
 			"offers": {
 				"@type": "Offer",
-				"price": product.price,
+				"price": finalProduct.price,
 				"priceCurrency": "EUR",
 				"availability": "https://schema.org/InStock"
 			},
-			"sku": product.catalogNumber
+			"sku": finalProduct.catalogNumber,
+			"category": finalProduct.genre,
+			"releaseDate": finalProduct.year
 		})} />
 
 		<link rel="preconnect" href="https://fonts.googleapis.com">
@@ -81,7 +113,7 @@ const product = {
 		<Header client:load />
 
 		<main class="max-w-screen-xl mx-auto px-8 pt-32 pb-16">
-			<ProductDetail client:load slug={slug} />
+			<ProductPage client:load product={finalProduct} prevProduct={prevProduct} nextProduct={nextProduct} key={finalProduct.id} />
 		</main>
 
 		<Toast client:load />

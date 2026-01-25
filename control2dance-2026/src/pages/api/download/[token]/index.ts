@@ -123,11 +123,20 @@ export const GET: APIRoute = async ({ params, request }) => {
     })
     .eq('id', downloadToken.id);
 
-  // Log de descarga
+  // Obtener IP y User-Agent
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  const clientIp = forwardedFor ? forwardedFor.split(',')[0].trim() : 
+                   request.headers.get('x-real-ip') || 
+                   null;
+  const userAgent = request.headers.get('user-agent') || null;
+
+  // Log de descarga con IP y User-Agent
   await supabase.from('download_logs').insert({
     download_token_id: downloadToken.id,
     user_id: downloadToken.user_id,
-    product_id: downloadToken.product_id
+    product_id: downloadToken.product_id,
+    ip_address: clientIp,
+    user_agent: userAgent
   });
 
   // Nombre del archivo para descarga

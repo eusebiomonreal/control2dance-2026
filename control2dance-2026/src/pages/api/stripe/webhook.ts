@@ -60,6 +60,23 @@ async function handleCheckoutComplete(session: any) {
   const userId = session.metadata?.user_id || null;
   console.log('User ID from metadata:', userId);
 
+  // Obtener detalles adicionales del Payment Intent
+  let paymentMethod = null;
+  let receiptUrl = null;
+  
+  if (session.payment_intent) {
+    try {
+      const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent, {
+        expand: ['latest_charge']
+      });
+      const charge = paymentIntent.latest_charge as any;
+      paymentMethod = charge?.payment_method_details?.type || 'card';
+      receiptUrl = charge?.receipt_url || null;
+    } catch (e) {
+      console.log('Could not fetch payment intent details:', e);
+    }
+  }
+
   // 1. Crear orden en Supabase
   const { data: order, error: orderError } = await (supabase
     .from('orders') as any)
@@ -70,6 +87,9 @@ async function handleCheckoutComplete(session: any) {
       stripe_customer_id: session.customer,
       customer_email: session.customer_email || session.customer_details?.email,
       customer_name: session.customer_details?.name,
+      customer_country: session.customer_details?.address?.country || null,
+      payment_method: paymentMethod,
+      stripe_receipt_url: receiptUrl,
       subtotal: (session.amount_subtotal || 0) / 100,
       total: (session.amount_total || 0) / 100,
       status: 'paid',

@@ -89,14 +89,15 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
       setError('Pedido no encontrado');
     } else {
       // Transformar download_tokens array a download_token objeto
-      const transformedOrder = {
-        ...data,
-        items: (data.items || []).map((item: any) => ({
+      const orderData = data as any;
+      const transformedOrder: Order = {
+        ...orderData,
+        items: (orderData.items || []).map((item: any) => ({
           ...item,
           download_token: item.download_tokens?.[0] || null
         }))
       };
-      setOrder(transformedOrder as Order);
+      setOrder(transformedOrder);
     }
     setLoading(false);
   };

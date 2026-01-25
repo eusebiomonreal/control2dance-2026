@@ -1,0 +1,26 @@
+---
+import AdminLayout from '../../components/admin/AdminLayout';
+import AdminDashboard from '../../components/admin/AdminDashboard';
+import '../../styles/global.css';
+
+export const prerender = false;
+---
+
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="robots" content="noindex, nofollow" />
+		<title>Admin Dashboard | Control2Dance</title>
+
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+	</head>
+	<body class="bg-zinc-950 text-white">
+		<AdminLayout client:load currentPage="dashboard">
+			<AdminDashboard client:load />
+		</AdminLayout>
+	</body>
+</html>

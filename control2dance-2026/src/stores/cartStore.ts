@@ -1,6 +1,7 @@
 import { map } from 'nanostores';
 import type { CartItem, Product } from '../types';
 import { showToast } from './toastStore';
+import { isProductOwned } from './ownedProductsStore';
 
 const CART_STORAGE_KEY = 'c2d_cart';
 
@@ -44,8 +45,15 @@ if (typeof window !== 'undefined') {
   });
 }
 
-export function addToCart(product: Product) {
+export function addToCart(product: Product): 'added' | 'already-in-cart' | 'already-owned' {
   console.log('🛒 addToCart called:', product.name, product.id);
+
+  // Verificar si ya lo posee
+  if (isProductOwned(product.id)) {
+    console.log('🛒 Product already owned:', product.name);
+    showToast('Ya tienes este producto', 'Puedes descargarlo desde tu panel', 'warning');
+    return 'already-owned';
+  }
 
   const currentCart = cartItems.get();
   const existingItem = currentCart[product.id];
@@ -54,7 +62,7 @@ export function addToCart(product: Product) {
   if (existingItem) {
     console.log('🛒 Product already in cart:', product.name);
     showToast('Este producto ya está en el carrito', product.name, 'info');
-    return;
+    return 'already-in-cart';
   }
 
   cartItems.setKey(product.id, {
@@ -70,6 +78,8 @@ export function addToCart(product: Product) {
     `${totalItems} ${totalItems === 1 ? 'producto' : 'productos'} en el carrito`,
     product.name
   );
+  
+  return 'added';
 }
 
 export function removeFromCart(id: string) {

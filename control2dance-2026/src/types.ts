@@ -9,6 +9,7 @@ export interface Product {
   price: number;
   description: string;
   image: string;
+  slug?: string;
   category: Category;
   rating: number;
   stock: number;
@@ -27,6 +28,11 @@ export interface Product {
   companies?: { name: string; entity_type_name: string }[];
   credits?: { name: string; role: string }[];
   notes?: string;
+  // Campos adicionales de Discogs
+  discogs_url?: string;
+  discogs_id?: string;
+  tracklist?: { position: string; title: string; duration?: string }[];
+  barcode?: string;
 }
 
 export interface CartItem extends Product {

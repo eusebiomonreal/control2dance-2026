@@ -1,90 +1,117 @@
+/**
+ * Página de producto - Basado en el diseño del modal
+ */
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
-import { X, Disc, Play, Pause, Volume2, Calendar, Tag, ShoppingCart, Sparkles, ChevronLeft, ChevronRight, CheckCircle2, Download, ExternalLink } from 'lucide-react';
+import { Disc, Play, Pause, Volume2, Calendar, Tag, Hash, Music, ShoppingCart, Sparkles, FileText, ChevronLeft, ChevronRight, CheckCircle2, Download, Users, ExternalLink } from 'lucide-react';
 import type { Product } from '../types';
 import { PLACEHOLDER_COVER } from '../constants';
-import { cartItems } from '../stores/cartStore';
+import { cartItems, addToCart } from '../stores/cartStore';
 import { ownedProducts } from '../stores/ownedProductsStore';
 
-interface ProductModalProps {
+interface ProductPageProps {
   product: Product;
-  onClose: () => void;
-  onAdd: (p: Product) => void;
-  onNext: () => void;
-  onPrev: () => void;
-  hasNext: boolean;
-  hasPrev: boolean;
+  prevProduct?: { slug: string; name: string; image: string } | null;
+  nextProduct?: { slug: string; name: string; image: string } | null;
 }
 
-const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, onNext, onPrev, hasNext, hasPrev }) => {
+const ProductPage: React.FC<ProductPageProps> = ({ product, prevProduct, nextProduct }) => {
   const $cartItems = useStore(cartItems);
   const $ownedProducts = useStore(ownedProducts);
   const isInCart = Boolean($cartItems[product.id]);
   const isOwned = $ownedProducts.has(product.id);
   const orderId = $ownedProducts.get(product.id);
   const [imgSrc, setImgSrc] = useState(product.image);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Transición de página con carrusel
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [transitionDirection, setTransitionDirection] = useState<'left' | 'right'>('right');
+  const [incomingProduct, setIncomingProduct] = useState<{ name: string; image: string } | null>(null);
+  
+  // Swipe para móvil
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
 
-  // Swipe logic states
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const minSwipeDistance = 50;
-
-  // Reset state when product changes
-  useEffect(() => {
-    setImgSrc(product.image);
-    setLoading(true);
-    setCurrentTrack(0);
-    setIsPlaying(false);
-    setProgress(0);
-    setDuration(0);
+  // Función de navegación con efecto carrusel
+  const navigateTo = (url: string, direction: 'left' | 'right') => {
+    // Determinar qué producto viene
+    const incoming = direction === 'left' ? nextProduct : prevProduct;
+    if (incoming) {
+      setIncomingProduct({
+        name: incoming.name,
+        image: incoming.image
+      });
+    }
+    
+    setTransitionDirection(direction);
+    setIsTransitioning(true);
+    
+    // Pausar audio si está reproduciendo
     if (audioRef.current) {
       audioRef.current.pause();
-      audioRef.current = null;
     }
-  }, [product]);
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
+    
+    // Navegar después de la animación
+    setTimeout(() => {
+      window.location.href = url;
+    }, 400);
   };
 
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe && hasNext) {
-      onNext();
-    }
-    if (isRightSwipe && hasPrev) {
-      onPrev();
-    }
-  };
-
-  // Keyboard navigation
+  // Navegación con teclado (flechas izq/der)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' && hasNext) onNext();
-      if (e.key === 'ArrowLeft' && hasPrev) onPrev();
-      if (e.key === 'Escape') onClose();
+      if (isTransitioning) return;
+      
+      if (e.key === 'ArrowLeft' && prevProduct) {
+        navigateTo(`/catalogo/${prevProduct.slug}`, 'right');
+      } else if (e.key === 'ArrowRight' && nextProduct) {
+        navigateTo(`/catalogo/${nextProduct.slug}`, 'left');
+      }
     };
-
+    
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [hasNext, hasPrev, onNext, onPrev, onClose]);
+  }, [prevProduct, nextProduct, isTransitioning]);
 
+  // Swipe handlers para móvil
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (isTransitioning) return;
+    
+    const diff = touchStartX.current - touchEndX.current;
+    const minSwipeDistance = 50;
+    
+    if (Math.abs(diff) > minSwipeDistance) {
+      if (diff > 0 && nextProduct) {
+        // Swipe izquierda -> siguiente
+        navigateTo(`/catalogo/${nextProduct.slug}`, 'left');
+      } else if (diff < 0 && prevProduct) {
+        // Swipe derecha -> anterior
+        navigateTo(`/catalogo/${prevProduct.slug}`, 'right');
+      }
+    }
+  };
+
+  // Resetear estado de imagen cuando cambia el producto
+  useEffect(() => {
+    setImgSrc(product.image);
+    setHasError(false);
+  }, [product.id, product.image]);
 
   useEffect(() => {
     return () => {
@@ -168,7 +195,6 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
       const filename = url.split('/').pop() || '';
       const nameWithoutExt = filename.replace(/\.mp3$/i, '');
 
-      // Limpiar el nombre base
       let cleanName = nameWithoutExt
         .replace(/-Demo$/i, '')
         .replace(/_Demo$/i, '')
@@ -177,15 +203,12 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
         .replace(/\s+/g, ' ')
         .trim();
 
-      // Extraer código de cara si existe (A, A1, A2, AA, B, B1, B2, etc.)
       const sideMatch = cleanName.match(/\s([AB][AB]?[0-9]?)$/i);
       const sideCode = sideMatch ? sideMatch[1].toUpperCase() : '';
       if (sideMatch) {
         cleanName = cleanName.replace(/\s[AB][AB]?[0-9]?$/i, '').trim();
       }
 
-      // Buscar patrones comunes de "Disco" y "Canción"
-      // Patrones como "Da Nu Style Vol 4 American Chris Maxx" -> "Da Nu Style Vol 4 - American Chris Maxx"
       const volMatch = cleanName.match(/^(.+?\s(?:Vol\.?\s?\d+|Volume\s?\d+))\s+(.+)$/i);
       const presentsMatch = cleanName.match(/^(.+?\s(?:Presents|Feat\.?|Vs\.?))\s+(.+)$/i);
 
@@ -199,7 +222,6 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
         discName = presentsMatch[1];
         songName = presentsMatch[2];
       } else {
-        // Intentar usar el brand del producto para identificar la canción
         const brandNormalized = product.brand.toLowerCase().replace(/[^a-z0-9]/g, '');
         const cleanNormalized = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -209,7 +231,6 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
           discName = words.slice(0, brandWords).join(' ');
           songName = words.slice(brandWords).join(' ');
         } else {
-          // Fallback: dividir a la mitad aproximadamente
           const words = cleanName.split(/\s+/);
           if (words.length >= 4) {
             const mid = Math.ceil(words.length / 2);
@@ -221,7 +242,6 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
         }
       }
 
-      // Construir el nombre final
       const finalSong = songName || product.name || cleanName;
       const sideLabel = sideCode ? ` (${sideCode})` : '';
 
@@ -238,12 +258,10 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
     if (!text) return '';
     let cleaned = text;
 
-    // Specific fix for known issue
     if (cleaned.includes('Da Nu Style - Control 2 Dance - Hard Trance')) {
       return 'Control 2 Dance';
     }
 
-    // HTML Entity decoding
     cleaned = cleaned
       .replace(/&#038;/g, '&')
       .replace(/&amp;/g, '&')
@@ -255,38 +273,184 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
     return cleaned;
   };
 
+  const renderPurchaseButton = () => (
+    <button
+      onClick={() => {
+        if (isOwned && orderId) {
+          window.location.href = `/dashboard/orders/${orderId}`;
+        } else if (isInCart) {
+          window.location.href = '/carrito';
+        } else {
+          addToCart(product);
+        }
+      }}
+      className={`group relative w-full sm:w-auto px-8 py-4 rounded-xl font-black uppercase text-[11px] tracking-[0.2em] shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 overflow-hidden ${
+        isOwned
+          ? 'bg-emerald-600 text-white shadow-emerald-600/25 hover:shadow-emerald-600/40'
+          : isInCart
+            ? 'bg-green-600 text-white shadow-green-600/25 hover:shadow-green-600/40'
+            : 'bg-[#ff4d7d] text-white shadow-[#ff4d7d]/25 hover:shadow-[#ff4d7d]/40'
+      }`}
+    >
+      <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+      {isOwned ? (
+        <>
+          <Download className="w-4 h-4" />
+          <span>Ya lo tienes</span>
+        </>
+      ) : isInCart ? (
+        <>
+          <CheckCircle2 className="w-4 h-4" />
+          <span>En el Carrito</span>
+        </>
+      ) : (
+        <>
+          <ShoppingCart className="w-4 h-4" />
+          <span>Añadir al Carrito</span>
+        </>
+      )}
+    </button>
+  );
+
   return (
     <div 
-      className="fixed inset-0 z-[300] flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-300"
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
+      className="min-h-screen relative overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
-      <div className="absolute inset-0 bg-[#0a0d1f]/98 backdrop-blur-2xl" onClick={onClose}></div>
-      
-      {/* Navigation Buttons (Desktop) */}
-      {hasPrev && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onPrev(); }}
-          className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-[310] p-4 bg-black/20 hover:bg-[#ff4d7d] rounded-full backdrop-blur-md border border-white/10 transition-all group hidden md:flex"
-        >
-          <ChevronLeft className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
-        </button>
+      {/* Overlay de transición con carrusel de discos */}
+      {isTransitioning && incomingProduct && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center pointer-events-none">
+          <div className="relative w-full max-w-[600px] h-[400px] flex items-center justify-center overflow-hidden">
+            {/* Disco actual saliendo */}
+            <div 
+              className={`absolute w-[280px] h-[280px] transition-all duration-400 ease-out ${
+                transitionDirection === 'left' 
+                  ? 'animate-slide-out-left' 
+                  : 'animate-slide-out-right'
+              }`}
+            >
+              <div className="relative w-full h-full">
+                {/* Disco vinyl */}
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-zinc-900 via-black to-zinc-800 shadow-2xl animate-spin-slow" 
+                     style={{ animationDuration: '3s' }}>
+                  <div className="absolute inset-0 rounded-full opacity-30" style={{
+                    backgroundImage: 'repeating-radial-gradient(circle at center, transparent 0, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 3px)'
+                  }} />
+                </div>
+                {/* Label del disco actual */}
+                <div className="absolute inset-[25%] rounded-full overflow-hidden shadow-inner">
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
+                  <div className="absolute top-1/2 left-1/2 w-[15%] h-[15%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0c0e1a] border-2 border-zinc-700" />
+                </div>
+              </div>
+            </div>
+            
+            {/* Disco nuevo entrando */}
+            <div 
+              className={`absolute w-[280px] h-[280px] transition-all duration-400 ease-out ${
+                transitionDirection === 'left' 
+                  ? 'animate-slide-in-left' 
+                  : 'animate-slide-in-right'
+              }`}
+            >
+              <div className="relative w-full h-full">
+                {/* Disco vinyl */}
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-zinc-900 via-black to-zinc-800 shadow-2xl animate-spin-slow"
+                     style={{ animationDuration: '3s' }}>
+                  <div className="absolute inset-0 rounded-full opacity-30" style={{
+                    backgroundImage: 'repeating-radial-gradient(circle at center, transparent 0, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 3px)'
+                  }} />
+                </div>
+                {/* Label del disco nuevo */}
+                <div className="absolute inset-[25%] rounded-full overflow-hidden shadow-inner">
+                  <img
+                    src={incomingProduct.image}
+                    alt={incomingProduct.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
+                  <div className="absolute top-1/2 left-1/2 w-[15%] h-[15%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0c0e1a] border-2 border-zinc-700" />
+                </div>
+              </div>
+            </div>
+            
+            {/* Glow effect */}
+            <div className="absolute inset-0 bg-gradient-radial from-[#ff4d7d]/20 via-transparent to-transparent pointer-events-none" />
+          </div>
+        </div>
       )}
       
-      {hasNext && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onNext(); }}
-          className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-[310] p-4 bg-black/20 hover:bg-[#ff4d7d] rounded-full backdrop-blur-md border border-white/10 transition-all group hidden md:flex"
+      {/* Contenido principal */}
+      <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-30' : 'opacity-100'}`}>
+      {/* Navigation bar */}
+      <div className="flex items-center justify-between mb-8">
+        <a
+          href="/catalogo"
+          className="inline-flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
         >
-          <ChevronRight className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
-        </button>
-      )}
+          <ChevronLeft className="w-4 h-4" />
+          Volver al catálogo
+        </a>
 
-      <div className="relative w-full max-w-5xl bg-[#080a16] border border-white/10 rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col md:flex-row h-full max-h-[90vh] animate-in zoom-in-95 duration-500">
+        <div className="flex items-center gap-4">
+          {/* Hint sutil */}
+          <span className="hidden lg:inline text-[10px] text-zinc-600 uppercase tracking-wider">
+            ← → para navegar
+          </span>
+          <span className="lg:hidden text-[10px] text-zinc-600 uppercase tracking-wider">
+            Desliza para navegar
+          </span>
+          
+          {prevProduct && (
+            <button
+              onClick={() => navigateTo(`/catalogo/${prevProduct.slug}`, 'right')}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+              title={prevProduct.name}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Anterior</span>
+            </button>
+          )}
+          {nextProduct && (
+            <button
+              onClick={() => navigateTo(`/catalogo/${nextProduct.slug}`, 'left')}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+              title={nextProduct.name}
+            >
+              <span className="hidden sm:inline">Siguiente</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
 
-        <div className="w-full md:w-[55%] h-full relative flex flex-col border-r border-white/5 bg-black">
-          <div className="relative flex-1 bg-[#151829] overflow-hidden flex items-center justify-center">
+      {/* Mobile: Price & Button at top */}
+      <div className="lg:hidden mb-6 bg-gradient-to-r from-[#ff4d7d]/10 via-[#ff4d7d]/5 to-transparent rounded-2xl p-4 border border-[#ff4d7d]/20 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#ff4d7d]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="relative flex items-center justify-between gap-4">
+          <div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-black text-white">{product.price.toFixed(2)}</span>
+              <span className="text-lg font-bold text-[#ff4d7d]">€</span>
+            </div>
+            <p className="text-[8px] text-zinc-500 uppercase tracking-wider">WAV + FLAC</p>
+          </div>
+          {renderPurchaseButton()}
+        </div>
+      </div>
+
+      <div className="bg-[#080a16] border border-white/10 rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col lg:flex-row">
+
+        {/* Left Panel - Image & Audio */}
+        <div className="w-full lg:w-[55%] relative flex flex-col border-r border-white/5 bg-black">
+          <div className="relative flex-1 bg-[#151829] overflow-hidden flex items-center justify-center min-h-[400px] lg:min-h-[500px]">
             {/* Background gradient */}
             <div className="absolute inset-0 bg-gradient-radial from-[#ff4d7d]/5 via-transparent to-transparent" />
 
@@ -297,13 +461,13 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
             )}
 
             {/* Vinyl Record Container */}
-            <div className="relative w-[55%] md:w-[70%] aspect-square max-w-[400px] group">
+            <div className="relative w-[55%] lg:w-[70%] aspect-square max-w-[400px] group">
               {/* Glow effect */}
-              <div className={`absolute inset-0 rounded-full bg-[#ff4d7d]/20 blur-3xl transition-all duration-500 ${isPlaying ? 'opacity-60 scale-110 translate-x-[15%] md:translate-x-[25%]' : 'opacity-20 scale-100 translate-x-0'}`} />
+              <div className={`absolute inset-0 rounded-full bg-[#ff4d7d]/20 blur-3xl transition-all duration-500 ${isPlaying ? 'opacity-60 scale-110 translate-x-[15%] lg:translate-x-[25%]' : 'opacity-20 scale-100 translate-x-0'}`} />
 
               {/* Vinyl Wrapper for Translation */}
-              <div className={`absolute inset-0 transition-transform duration-700 ease-out ${isPlaying ? 'translate-x-[15%] md:translate-x-[25%]' : 'translate-x-0'}`}>
-                {/* Vinyl disc (black part showing behind) */}
+              <div className={`absolute inset-0 transition-transform duration-700 ease-out ${isPlaying ? 'translate-x-[15%] lg:translate-x-[25%]' : 'translate-x-0'}`}>
+                {/* Vinyl disc */}
                 <div
                   className="absolute inset-0 rounded-full bg-gradient-to-br from-zinc-900 via-black to-zinc-800 shadow-2xl"
                   style={{
@@ -315,7 +479,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
                   <div className="absolute inset-[25%] rounded-full border border-zinc-700/20" />
                   <div className="absolute inset-[35%] rounded-full border border-zinc-700/10" />
 
-                  {/* Center label hole */}
+                  {/* Center label */}
                   <div className="absolute inset-[38%] rounded-full bg-[#ff4d7d]/80 shadow-inner flex items-center justify-center overflow-hidden">
                     <img src={imgSrc} alt="Label" className="w-full h-full object-cover opacity-80" />
                     <div className="absolute w-1.5 h-1.5 rounded-full bg-black/80 z-10" />
@@ -324,33 +488,28 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
 
                 {/* Turntable Arm */}
                 <div 
-                  className={`absolute -top-12 -right-4 md:-right-20 w-52 h-64 z-20 pointer-events-none transition-opacity duration-500 delay-200 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
+                  className={`absolute -top-12 -right-4 lg:-right-20 w-52 h-64 z-20 pointer-events-none transition-opacity duration-500 delay-200 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
                 >
                   <svg 
                     viewBox="0 0 160 200" 
                     className={`w-full h-full drop-shadow-2xl transition-transform duration-700 ease-out origin-[130px_30px] ${isPlaying ? 'rotate-[25deg]' : 'rotate-[-10deg]'}`}
                   >
-                    {/* Base Pivot */}
                     <circle cx="130" cy="30" r="12" fill="#27272a" stroke="#52525b" strokeWidth="3" />
                     <circle cx="130" cy="30" r="5" fill="#a1a1aa" />
-                    
-                    {/* Arm - Straight & Shorter to avoid label */}
                     <line x1="130" y1="30" x2="85" y2="135" stroke="#d4d4d8" strokeWidth="6" strokeLinecap="round" />
-                    
-                    {/* Cartridge/Head */}
                     <g transform="translate(76, 130) rotate(25)">
                       <rect x="0" y="0" width="16" height="24" rx="2" fill="#18181b" />
-                      <rect x="2" y="22" width="5" height="6" fill="#ef4444" /> {/* Needle indicator */}
+                      <rect x="2" y="22" width="5" height="6" fill="#ef4444" />
                     </g>
                   </svg>
                 </div>
               </div>
 
-              {/* Cover sleeve - offset to reveal vinyl */}
+              {/* Cover sleeve */}
               <div
                 className={`absolute rounded-2xl overflow-hidden shadow-2xl transition-all duration-700 ease-out ${
                   isPlaying
-                    ? 'inset-0 translate-x-[-15%] md:translate-x-[-30%] rotate-[-3deg] scale-95'
+                    ? 'inset-0 translate-x-[-15%] lg:translate-x-[-30%] rotate-[-3deg] scale-95'
                     : 'inset-0 translate-x-0 rotate-0 scale-100 hover:scale-[1.02] hover:rotate-1'
                 }`}
               >
@@ -359,7 +518,10 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
                   onLoad={() => setLoading(false)}
                   referrerPolicy="no-referrer"
                   onError={() => {
-                    setImgSrc(PLACEHOLDER_COVER);
+                    if (!hasError) {
+                      setHasError(true);
+                      setImgSrc(PLACEHOLDER_COVER);
+                    }
                     setLoading(false);
                   }}
                   className={`w-full h-full object-cover transition-all duration-1000 ${
@@ -367,11 +529,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
                   }`}
                   alt={product.name}
                 />
-
-                {/* Shine effect on cover */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/20 pointer-events-none" />
-
-                {/* Edge shadow */}
                 <div className="absolute inset-0 shadow-[inset_0_0_30px_rgba(0,0,0,0.5)] pointer-events-none rounded-2xl" />
               </div>
 
@@ -390,6 +548,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
             </div>
           </div>
 
+          {/* Audio Player Section */}
           <div className="p-8 bg-[#0a0d1f] border-t border-white/10">
             <div className="flex justify-between items-center mb-6">
               <div className="space-y-1">
@@ -431,7 +590,6 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
                               className="h-full bg-[#ff4d7d] rounded-full relative transition-all duration-100 pointer-events-none"
                               style={{ width: `${duration > 0 ? (progress / duration) * 100 : 0}%` }}
                             >
-                              {/* Bolita arrastrable */}
                               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg opacity-0 group-hover/progress:opacity-100 transition-opacity border-2 border-[#ff4d7d]" />
                             </div>
                           </div>
@@ -450,31 +608,70 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col p-6 md:p-8 overflow-visible md:overflow-y-auto scrollbar-hide bg-gradient-to-b from-[#04050a] to-[#080a14]">
+        {/* Right Panel - Details */}
+        <div className="flex-1 flex flex-col p-6 lg:p-8 bg-gradient-to-b from-[#04050a] to-[#080a14]">
           {/* Header */}
-          <div className="flex justify-between items-start mb-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <span className="text-[#ff4d7d] text-[9px] font-black uppercase tracking-[0.4em] bg-[#ff4d7d]/10 px-3 py-1.5 rounded-full border border-[#ff4d7d]/20">
-                  Digital Archive
-                </span>
-                <span className="text-zinc-600 text-[9px] font-bold uppercase tracking-wider">
-                  #{product.catalogNumber}
-                </span>
-              </div>
-              <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight leading-none text-white">
-                {cleanText(product.name)}
-              </h2>
-              <p className="text-[#ff4d7d] text-sm font-bold uppercase tracking-wide">{cleanText(product.brand)}</p>
+          <div className="space-y-3 mb-6">
+            <div className="flex items-center gap-3">
+              <span className="text-[#ff4d7d] text-[9px] font-black uppercase tracking-[0.4em] bg-[#ff4d7d]/10 px-3 py-1.5 rounded-full border border-[#ff4d7d]/20">
+                Digital Archive
+              </span>
+              <span className="text-zinc-600 text-[9px] font-bold uppercase tracking-wider">
+                #{product.catalogNumber}
+              </span>
             </div>
-            <button onClick={onClose} className="p-2.5 bg-white/5 rounded-xl hover:bg-white/10 hover:rotate-90 transition-all duration-300">
-              <X className="w-5 h-5" />
-            </button>
+            <h1 className="text-3xl lg:text-4xl font-black uppercase tracking-tight leading-none text-white">
+              {cleanText(product.name)}
+            </h1>
+            <p className="text-[#ff4d7d] text-sm font-bold uppercase tracking-wide">{cleanText(product.brand)}</p>
           </div>
 
-          {/* Content */}
+          {/* Purchase Section - Desktop only (moved up) */}
+          <div className="hidden lg:block mb-6 bg-gradient-to-r from-[#ff4d7d]/10 via-[#ff4d7d]/5 to-transparent rounded-2xl p-6 border border-[#ff4d7d]/20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#ff4d7d]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <Sparkles className="absolute top-4 right-4 w-5 h-5 text-[#ff4d7d]/30" />
+
+            <div className="relative flex items-center justify-between gap-4">
+              <div>
+                <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">
+                  Master Studio Quality
+                </p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-black text-white">{product.price.toFixed(2)}</span>
+                  <span className="text-xl font-bold text-[#ff4d7d]">€</span>
+                </div>
+                <p className="text-[8px] text-zinc-600 uppercase tracking-wider mt-1">WAV + FLAC included</p>
+              </div>
+
+              {renderPurchaseButton()}
+            </div>
+          </div>
+
+          {/* Stats Cards */}
           <div className="space-y-5 flex-1">
-            {/* Stats Cards */}
+            {/* Tracklist from Discogs - Compact */}
+            {product.tracklist && product.tracklist.length > 0 && (
+              <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Tracklist</p>
+                  <span className="text-[9px] text-zinc-600">{product.tracklist.length} tracks</span>
+                </div>
+                <div className="divide-y divide-white/5">
+                  {product.tracklist.map((track, idx) => (
+                    <div key={idx} className="flex items-center justify-between py-1.5 text-[11px]">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#ff4d7d] font-mono w-4">{track.position}</span>
+                        <span className="text-white">{track.title}</span>
+                      </div>
+                      {track.duration && (
+                        <span className="text-zinc-500 font-mono text-[10px]">{track.duration}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               {product.year && (
                 <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-all group">
@@ -490,13 +687,6 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
                   <p className="text-xs font-bold text-white truncate">{cleanText(product.label)}</p>
                 </div>
               )}
-              {product.country && (
-                <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-all group">
-                  <Disc className="w-5 h-5 text-[#ff4d7d] mb-3 group-hover:scale-110 transition-transform" />
-                  <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider mb-1">País</p>
-                  <p className="text-xs font-bold text-white">{product.country}</p>
-                </div>
-              )}
               {product.format && (
                 <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-all group">
                   <Disc className="w-5 h-5 text-[#ff4d7d] mb-3 group-hover:scale-110 transition-transform" />
@@ -506,7 +696,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
               )}
             </div>
 
-            {/* Styles Tags (as Genre) */}
+            {/* Styles Tags */}
             {product.styles && product.styles.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {product.styles.map((style, i) => (
@@ -517,26 +707,6 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
                     {style}
                   </span>
                 ))}
-              </div>
-            )}
-
-            {/* Tracklist from Discogs - Compact */}
-            {product.tracklist && product.tracklist.length > 0 && (
-              <div className="bg-white/5 rounded-xl p-3 border border-white/5">
-                <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider mb-2">Tracklist</p>
-                <div className="divide-y divide-white/5">
-                  {product.tracklist.map((track, idx) => (
-                    <div key={idx} className="flex items-center justify-between py-1.5 text-[11px]">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[#ff4d7d] font-mono w-4">{track.position}</span>
-                        <span className="text-white">{track.title}</span>
-                      </div>
-                      {track.duration && (
-                        <span className="text-zinc-500 font-mono text-[10px]">{track.duration}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
 
@@ -576,69 +746,38 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAdd, on
                 )}
               </div>
             )}
-
-          </div>
-
-          {/* Purchase Section */}
-          <div className="mt-auto pt-6 bg-gradient-to-r from-[#ff4d7d]/10 via-[#ff4d7d]/5 to-transparent rounded-2xl p-6 border border-[#ff4d7d]/20 relative overflow-hidden">
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[#ff4d7d]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-            <Sparkles className="absolute top-4 right-4 w-5 h-5 text-[#ff4d7d]/30" />
-
-            <div className="relative flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-center sm:text-left">
-                <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">
-                  Master Studio Quality
-                </p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-black text-white">{product.price.toFixed(2)}</span>
-                  <span className="text-xl font-bold text-[#ff4d7d]">€</span>
-                </div>
-                <p className="text-[8px] text-zinc-600 uppercase tracking-wider mt-1">WAV + FLAC included</p>
-              </div>
-
-              <button
-                onClick={() => {
-                  if (isOwned && orderId) {
-                    window.location.href = `/dashboard/orders/${orderId}`;
-                  } else if (isInCart) {
-                    window.location.href = '/carrito';
-                  } else {
-                    onAdd(product);
-                  }
-                }}
-                className={`group relative w-full sm:w-auto px-8 py-4 rounded-xl font-black uppercase text-[11px] tracking-[0.2em] shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 overflow-hidden ${
-                  isOwned
-                    ? 'bg-emerald-600 text-white shadow-emerald-600/25 hover:shadow-emerald-600/40'
-                    : isInCart
-                      ? 'bg-green-600 text-white shadow-green-600/25 hover:shadow-green-600/40'
-                      : 'bg-[#ff4d7d] text-white shadow-[#ff4d7d]/25 hover:shadow-[#ff4d7d]/40'
-                }`}
-              >
-                <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                {isOwned ? (
-                  <>
-                    <Download className="w-4 h-4" />
-                    <span>Ya lo tienes</span>
-                  </>
-                ) : isInCart ? (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>En el Carrito</span>
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart className="w-4 h-4" />
-                    <span>Añadir al Carrito</span>
-                  </>
-                )}
-              </button>
-            </div>
           </div>
         </div>
       </div>
+      </div>
+
+      {/* Estilos de animación inline */}
+      <style>{`
+        @keyframes slide-out-left {
+          0% { transform: translateX(0) rotate(0deg); opacity: 1; }
+          100% { transform: translateX(-150%) rotate(-20deg); opacity: 0; }
+        }
+        @keyframes slide-out-right {
+          0% { transform: translateX(0) rotate(0deg); opacity: 1; }
+          100% { transform: translateX(150%) rotate(20deg); opacity: 0; }
+        }
+        @keyframes slide-in-left {
+          0% { transform: translateX(150%) rotate(20deg); opacity: 0; }
+          100% { transform: translateX(0) rotate(0deg); opacity: 1; }
+        }
+        @keyframes slide-in-right {
+          0% { transform: translateX(-150%) rotate(-20deg); opacity: 0; }
+          100% { transform: translateX(0) rotate(0deg); opacity: 1; }
+        }
+        .animate-slide-out-left { animation: slide-out-left 0.4s ease-out forwards; }
+        .animate-slide-out-right { animation: slide-out-right 0.4s ease-out forwards; }
+        .animate-slide-in-left { animation: slide-in-left 0.4s ease-out forwards; }
+        .animate-slide-in-right { animation: slide-in-right 0.4s ease-out forwards; }
+        .animate-spin-slow { animation: spin 3s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 };
 
-export default ProductModal;
+export default ProductPage;

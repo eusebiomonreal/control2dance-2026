@@ -16,9 +16,7 @@ export default defineConfig({
   },
   redirects: {
     '/tienda': '/catalogo',
-    '/tienda/': '/catalogo/',
     '/mi-cuenta': '/dashboard',
-    '/mi-cuenta/': '/dashboard/',
     '/mi-cuenta/pedidos': '/dashboard/orders',
     '/mi-cuenta/descargas': '/dashboard/downloads',
     '/finalizar-compra': '/carrito',

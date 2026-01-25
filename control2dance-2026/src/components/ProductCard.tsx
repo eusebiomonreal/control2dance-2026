@@ -1,20 +1,23 @@
 
 import React, { useState } from 'react';
 import { useStore } from '@nanostores/react';
-import { PlusCircle, CheckCircle2, Disc, ShoppingCart } from 'lucide-react';
+import { PlusCircle, CheckCircle2, Disc, ShoppingCart, Download } from 'lucide-react';
 import type { Product } from '../types';
 import { PLACEHOLDER_COVER } from '../constants';
 import { cartItems } from '../stores/cartStore';
+import { ownedProducts } from '../stores/ownedProductsStore';
 
 interface ProductCardProps {
   product: Product;
   onAdd: (p: Product) => void;
-  onShowInfo: (p: Product) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, onShowInfo }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
   const $cartItems = useStore(cartItems);
+  const $ownedProducts = useStore(ownedProducts);
   const isInCart = Boolean($cartItems[product.id]);
+  const isOwned = $ownedProducts.has(product.id);
+  const orderId = $ownedProducts.get(product.id);
   const [isAdded, setIsAdded] = useState(false);
   const [imgSrc, setImgSrc] = useState(product.image);
   const [loading, setLoading] = useState(true);
@@ -23,6 +26,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, onShowInfo })
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+
+    // Si ya lo tiene, ir al pedido específico
+    if (isOwned && orderId) {
+      window.location.href = `/dashboard/orders/${orderId}`;
+      return;
+    }
 
     // If already in cart, go to cart page
     if (isInCart) {
@@ -48,10 +57,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, onShowInfo })
     setLoading(false);
   };
 
+  // Generar URL del producto
+  const productUrl = `/catalogo/${product.slug || product.catalogNumber?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || product.id}`;
+
   return (
-    <div
-      className="group relative bg-[#090b1a] border border-white/5 shadow-2xl rounded-2xl overflow-hidden cursor-pointer transition-all hover:border-[#ff4d7d]/40 hover:-translate-y-2"
-      onClick={() => onShowInfo(product)}
+    <a
+      href={productUrl}
+      className="group relative bg-[#090b1a] border border-white/5 shadow-2xl rounded-2xl overflow-hidden cursor-pointer transition-all hover:border-[#ff4d7d]/40 hover:-translate-y-2 block"
     >
       <div className="relative aspect-square overflow-hidden bg-black flex items-center justify-center">
         {loading && (
@@ -90,15 +102,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, onShowInfo })
             className={`px-4 py-2 shrink-0 flex items-center justify-center gap-2 rounded-lg transition-all font-black uppercase text-[9px] tracking-widest ${
               isAdded
                 ? 'bg-green-500 text-white'
-                : isInCart
-                  ? 'bg-[#ff4d7d]/20 text-[#ff4d7d] border border-[#ff4d7d]/30'
-                  : 'bg-white/5 text-white hover:bg-[#ff4d7d] hover:text-white group-hover:bg-white/10'
+                : isOwned
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : isInCart
+                    ? 'bg-[#ff4d7d]/20 text-[#ff4d7d] border border-[#ff4d7d]/30'
+                    : 'bg-white/5 text-white hover:bg-[#ff4d7d] hover:text-white group-hover:bg-white/10'
             }`}
           >
             {isAdded ? (
               <>
                 <CheckCircle2 className="w-3 h-3" />
                 <span>Añadido</span>
+              </>
+            ) : isOwned ? (
+              <>
+                <Download className="w-3 h-3" />
+                <span>Ya lo tienes</span>
               </>
             ) : isInCart ? (
               <>
@@ -114,7 +133,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, onShowInfo })
           </button>
         </div>
       </div>
-    </div>
+    </a>
   );
 };
 

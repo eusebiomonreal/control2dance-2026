@@ -1,25 +1,36 @@
 import { atom, computed } from 'nanostores';
 import type { Product } from '../types';
-import { cmsService } from '../services/cmsService';
+import { productService } from '../services/productService';
 
 // Atoms
 export const products = atom<Product[]>([]);
 export const loading = atom(true);
+export const error = atom<string | null>(null);
 export const searchQuery = atom('');
 export const selectedYear = atom('all');
 export const selectedGenre = atom('all');
 export const selectedStyle = atom('all');
 export const selectedProduct = atom<Product | null>(null);
 
-// Fetch products
+// Fetch products desde Supabase
 export async function fetchProducts() {
   loading.set(true);
+  error.set(null);
   try {
-    const data = await cmsService.getProducts();
+    const data = await productService.getProducts();
     products.set(data);
+  } catch (err) {
+    console.error('Error fetching products:', err);
+    error.set('Error al cargar los productos');
   } finally {
     loading.set(false);
   }
+}
+
+// Inicializar productos con datos pre-cargados (SSR)
+export function initProducts(initialProducts: Product[]) {
+  products.set(initialProducts);
+  loading.set(false);
 }
 
 // Computed: Filtered Products

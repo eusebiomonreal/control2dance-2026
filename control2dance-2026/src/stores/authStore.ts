@@ -1,6 +1,7 @@
 import { atom, computed } from 'nanostores';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { loadOwnedProducts, clearOwnedProducts } from './ownedProductsStore';
 
 // Estado de autenticación
 export const $user = atom<User | null>(null);
@@ -26,17 +27,23 @@ export async function initAuth() {
   if (session) {
     $session.set(session);
     $user.set(session.user);
+    // Cargar productos que ya posee
+    await loadOwnedProducts(session.user.id);
   }
 
   // Escuchar cambios de auth
-  supabase.auth.onAuthStateChange((event, session) => {
+  supabase.auth.onAuthStateChange(async (event, session) => {
     $session.set(session);
     $user.set(session?.user ?? null);
 
-    if (event === 'SIGNED_IN') {
+    if (event === 'SIGNED_IN' && session?.user) {
       $authError.set(null);
+      // Cargar productos que ya posee
+      await loadOwnedProducts(session.user.id);
     } else if (event === 'SIGNED_OUT') {
       $authError.set(null);
+      // Limpiar productos al cerrar sesión
+      clearOwnedProducts();
     }
   });
 

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useStore } from '@nanostores/react';
-import { filteredProducts, setSelectedProduct, fetchProducts, loading } from '../stores/productStore';
+import { filteredProducts, fetchProducts, loading } from '../stores/productStore';
 import { addToCart } from '../stores/cartStore';
 import ProductCard from './ProductCard';
 import { Loader2 } from 'lucide-react';
@@ -36,7 +36,6 @@ export default function ProductGrid() {
           key={p.id}
           product={p}
           onAdd={addToCart}
-          onShowInfo={setSelectedProduct}
         />
       ))}
     </div>

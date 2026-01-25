@@ -2,7 +2,6 @@
 import Header from '../../components/Header';
 import Filters from '../../components/Filters';
 import ProductGrid from '../../components/ProductGrid';
-import ProductModalWrapper from '../../components/ProductModalWrapper';
 import Toast from '../../components/Toast';
 import Footer from '../../components/Footer.astro';
 import '../../styles/global.css';
@@ -43,7 +42,6 @@ import '../../styles/global.css';
 			<ProductGrid client:visible />
 		</section>
 
-		<ProductModalWrapper client:idle />
 		<Toast client:load />
 		<Footer />
 	</body>

@@ -120,7 +120,7 @@ export interface AudioPreview {
   duration?: number;
 }
 
-export type OrderStatus = 'pending' | 'paid' | 'failed' | 'refunded';
+export type OrderStatus = 'pending' | 'paid' | 'failed' | 'refunded' | 'partially_refunded';
 export type ActivityAction = 'login' | 'logout' | 'purchase' | 'download' | 'password_change' | 'profile_update';
 
 // Tipos base

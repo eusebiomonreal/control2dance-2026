@@ -3,7 +3,6 @@ import Header from '../components/Header';
 import Hero from '../components/Hero.astro';
 import Filters from '../components/Filters';
 import ProductGrid from '../components/ProductGrid';
-import ProductModalWrapper from '../components/ProductModalWrapper';
 import Toast from '../components/Toast';
 import Footer from '../components/Footer.astro';
 import GlobalLoader from '../components/GlobalLoader';
@@ -31,7 +30,6 @@ import '../styles/global.css';
             <ProductGrid client:visible />
         </section>
 
-        <ProductModalWrapper client:load />
         <Toast client:load />
         <Footer />
 	</body>
