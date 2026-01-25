@@ -14,13 +14,14 @@ import {
   X,
   RefreshCw,
   ShoppingCart,
-  Users
+  Users,
+  Shield
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
-  currentPage?: 'dashboard' | 'products' | 'orders' | 'customers' | 'settings';
+  currentPage?: 'dashboard' | 'products' | 'orders' | 'customers' | 'roles' | 'settings';
 }
 
 const navItems = [
@@ -28,6 +29,7 @@ const navItems = [
   { id: 'products', label: 'Productos', icon: Package, href: '/admin/products' },
   { id: 'orders', label: 'Pedidos', icon: ShoppingCart, href: '/admin/orders' },
   { id: 'customers', label: 'Clientes', icon: Users, href: '/admin/customers' },
+  { id: 'roles', label: 'Roles', icon: Shield, href: '/admin/roles' },
   { id: 'settings', label: 'Ajustes', icon: Settings, href: '/admin/settings' },
 ];
 
