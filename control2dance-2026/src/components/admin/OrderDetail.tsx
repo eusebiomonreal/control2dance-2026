@@ -161,30 +161,33 @@ export default function OrderDetail({ orderId }: Props) {
     setLoading(true);
     setError(null);
 
-    const { data, error: fetchError } = await supabase
-      .from('orders')
-      .select(`
-        *,
-        items:order_items(
-          id, 
-          product_id,
-          product_name, 
-          product_catalog_number,
-          price,
-          download_tokens(
-            *,
-            download_logs(*)
-          )
-        )
-      `)
-      .eq('id', orderId)
-      .single();
+    try {
+      // Obtener token de sesión
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setError('No autenticado');
+        setLoading(false);
+        return;
+      }
 
-    if (fetchError) {
-      console.error('Error loading order:', fetchError);
+      // Usar API admin que tiene acceso a todos los pedidos
+      const res = await fetch(`/api/admin/orders/${orderId}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        console.error('Error loading order:', data.error);
+        setError(data.error || 'Pedido no encontrado');
+      } else {
+        const data = await res.json();
+        setOrder(data);
+      }
+    } catch (e) {
+      console.error('Error loading order:', e);
       setError('Pedido no encontrado');
-    } else {
-      setOrder(data);
     }
 
     setLoading(false);
@@ -204,19 +207,31 @@ export default function OrderDetail({ orderId }: Props) {
   const resetDownloadToken = async (tokenId: string) => {
     setResettingToken(tokenId);
     
-    const { error } = await supabase
-      .from('download_tokens')
-      .update({ 
-        download_count: 0,
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-      })
-      .eq('id', tokenId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        alert('No autenticado');
+        setResettingToken(null);
+        return;
+      }
 
-    if (error) {
-      console.error('Error resetting token:', error);
+      const res = await fetch(`/api/admin/tokens/${tokenId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        console.error('Error resetting token:', data.error);
+        alert('Error al resetear el token');
+      } else {
+        await loadOrder();
+      }
+    } catch (e) {
+      console.error('Error resetting token:', e);
       alert('Error al resetear el token');
-    } else {
-      await loadOrder();
     }
     
     setResettingToken(null);
