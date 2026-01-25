@@ -12,13 +12,13 @@ export const GET: APIRoute = async ({ request }) => {
   try {
     const supabase = createServerClient();
     const url = new URL(request.url);
-    const days = parseInt(url.searchParams.get('days') || '90');
+    const days = Math.min(parseInt(url.searchParams.get('days') || '30'), 90); // Máximo 90 días
 
     // Obtener pagos exitosos de Stripe
     const startDate = Math.floor(Date.now() / 1000) - (days * 24 * 60 * 60);
     
     const sessions = await stripe.checkout.sessions.list({
-      limit: 100,
+      limit: 50, // Reducido para evitar timeout
       created: { gte: startDate },
       expand: ['data.line_items']
     });

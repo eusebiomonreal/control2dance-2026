@@ -82,7 +82,7 @@ export default function AdminDashboard() {
   const loadReconcileData = async () => {
     setLoadingReconcile(true);
     try {
-      const res = await fetch('/api/admin/reconcile?days=90');
+      const res = await fetch('/api/admin/reconcile?days=30');
       if (res.ok) {
         const data = await res.json();
         setReconcileData(data);
