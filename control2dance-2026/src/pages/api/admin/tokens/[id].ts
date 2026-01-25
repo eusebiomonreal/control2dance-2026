@@ -46,13 +46,13 @@ export const PATCH: APIRoute = async ({ params, request }) => {
   }
 
   // Verificar rol admin
-  const { data: profile } = await supabase
-    .from('profiles')
+  const { data: userRole } = await supabase
+    .from('user_roles')
     .select('role')
-    .eq('id', user.id)
+    .eq('user_id', user.id)
     .single();
 
-  if (profile?.role !== 'admin') {
+  if (userRole?.role !== 'admin') {
     return new Response(JSON.stringify({ error: 'Admin access required' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' }
