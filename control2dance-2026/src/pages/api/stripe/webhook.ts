@@ -161,8 +161,70 @@ async function handleCheckoutComplete(session: any) {
     }
   }
 
-  // 4. Log de actividad (si el usuario está autenticado)
+  // 4. Si es compra de invitado (sin user_id), crear cuenta automáticamente
+  const customerEmail = session.customer_email || session.customer_details?.email;
+
+  if (!userId && customerEmail) {
+    try {
+      const newUserId = await createGuestAccount(supabase, customerEmail, session.customer_details?.name);
+
+      if (newUserId) {
+        // Actualizar la orden con el nuevo user_id
+        await (supabase
+          .from('orders') as any)
+          .update({ user_id: newUserId })
+          .eq('id', order.id);
+
+        // Actualizar los download_tokens con el nuevo user_id
+        await (supabase
+          .from('download_tokens') as any)
+          .update({ user_id: newUserId })
+          .eq('order_item_id', order.id);
+
+        console.log(`✅ Guest account created and linked: ${customerEmail}`);
+      }
+    } catch (e) {
+      console.log('ℹ️ Could not create guest account (may already exist):', e);
+    }
+  }
+
   // TODO: Enviar email de confirmación con enlaces de descarga
 
-  console.log(`Order ${order.id} created successfully for ${session.customer_email}`);
+  console.log(`Order ${order.id} created successfully for ${customerEmail}`);
+}
+
+/**
+ * Crea una cuenta para el usuario invitado después del pago
+ * Si el email ya existe, no hace nada
+ */
+async function createGuestAccount(
+  supabase: ReturnType<typeof createServerClient>,
+  email: string,
+  name?: string
+): Promise<string | null> {
+  // Verificar si ya existe un usuario con este email
+  const { data: existingUsers } = await supabase.auth.admin.listUsers();
+  const existingUser = existingUsers?.users?.find(u => u.email === email);
+
+  if (existingUser) {
+    console.log(`User already exists: ${email}`);
+    return existingUser.id;
+  }
+
+  // Crear nuevo usuario con invitación (les llega email para establecer contraseña)
+  const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
+    data: {
+      name: name || email.split('@')[0],
+      created_via: 'guest_checkout'
+    },
+    redirectTo: `${process.env.PUBLIC_SITE_URL || 'https://dev.control2dance.es'}/auth/set-password`
+  });
+
+  if (error) {
+    console.error('Error creating guest account:', error);
+    return null;
+  }
+
+  console.log(`✉️ Invitation sent to: ${email}`);
+  return data.user.id;
 }
