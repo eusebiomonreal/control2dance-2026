@@ -38,3 +38,4 @@ npm-debug.log*
 # Cache
 .cache/
 supabase.env
+control2dance-2026/.env
