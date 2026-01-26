@@ -235,8 +235,8 @@ export const POST: APIRoute = async ({ request }) => {
         // Use BCC for batch sending to avoid revealing email addresses
         const result = await resend.emails.send({
           from: 'Control2Dance <noreply@control2dance.es>',
-          to: 'newsletter@control2dance.es', // Placeholder, real emails go in BCC
-          bcc: batch,
+          to: batch[0], // First recipient as "to"
+          bcc: batch.slice(1), // Rest as BCC
           subject: data.subject,
           html: html,
         });
