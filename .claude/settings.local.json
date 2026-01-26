@@ -35,7 +35,8 @@
       "Bash(git commit:*)",
       "Bash(npx tsx:*)",
       "WebFetch(domain:control2dance.es)",
-      "WebFetch(domain:api.discogs.com)"
+      "WebFetch(domain:api.discogs.com)",
+      "Bash(open:*)"
     ]
   }
 }
