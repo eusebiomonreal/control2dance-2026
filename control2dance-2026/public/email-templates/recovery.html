@@ -19,59 +19,66 @@
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
     <tr>
       <td align="center" valign="top" style="padding: 40px 20px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 520px; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e5e5e5; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 520px; background: linear-gradient(180deg, #0a0a0f 0%, #0f0f18 10%, #151520 20%, #1c1c2a 30%, #252535 40%, #353548 50%, #505065 58%, #707085 65%, #9090a5 72%, #b0b0c0 78%, #d0d0da 85%, #e8e8ef 92%, #ffffff 100%); border-radius: 16px; overflow: hidden; border: 1px solid #e5e5e5; box-shadow: 0 8px 32px rgba(0,0,0,0.15);">
           <tr>
-            <td style="background: linear-gradient(180deg, rgba(255, 77, 125, 0.1) 0%, transparent 100%);">
+            <td style="padding: 40px 30px 30px;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td style="padding: 30px 30px 20px; text-align: center;">
-                    <img src="https://dev.control2dance.es/logo-color.svg" alt="Control2Dance" style="max-width: 200px; height: auto;" />
+                  <td style="text-align: center;">
+                    <img src="https://dev.control2dance.es/logo-blanco.svg" alt="Control2Dance" style="max-width: 280px; height: auto;" />
                   </td>
                 </tr>
                 <tr>
-                  <td align="center" style="padding: 0 30px;">
-                    <!-- Turntable -->
-                    <div style="width: 160px; height: 140px; margin: 0 auto; position: relative;">
-                      <!-- Base del tocadiscos -->
-                      <div style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 150px; height: 20px; background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%); border-radius: 4px;"></div>
-                      <!-- Disco giratorio -->
-                      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="width: 120px; height: 120px; position: absolute; left: 50%; top: 0; transform: translateX(-50%);" class="vinyl-disc">
-                        <circle cx="60" cy="60" r="58" fill="#1a1a1a" stroke="#ff4d7d" stroke-width="0.5" stroke-opacity="0.3"/>
-                        <circle cx="60" cy="60" r="54" fill="none" stroke="#333" stroke-width="0.5"/>
-                        <circle cx="60" cy="60" r="50" fill="none" stroke="#2a2a2a" stroke-width="1"/>
-                        <circle cx="60" cy="60" r="46" fill="none" stroke="#333" stroke-width="0.5"/>
-                        <circle cx="60" cy="60" r="42" fill="none" stroke="#252525" stroke-width="1"/>
-                        <circle cx="60" cy="60" r="38" fill="none" stroke="#333" stroke-width="0.5"/>
-                        <circle cx="60" cy="60" r="34" fill="none" stroke="#2a2a2a" stroke-width="1"/>
-                        <!-- Etiqueta central -->
-                        <circle cx="60" cy="60" r="20" fill="#ff4d7d"/>
-                        <circle cx="60" cy="60" r="18" fill="none" stroke="#e6366a" stroke-width="1"/>
-                        <circle cx="60" cy="60" r="15" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+                  <td align="center" style="padding: 30px 0 20px;">
+                    <div style="position: relative; display: inline-block;">
+                      <!-- Glow effect -->
+                      <div style="position: absolute; inset: -40px; background: radial-gradient(circle, rgba(255,50,100,0.6) 0%, rgba(255,77,125,0.3) 40%, transparent 70%); border-radius: 50%; filter: blur(30px);"></div>
+                      <svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg" style="width: 160px; height: 160px; position: relative;" class="vinyl-disc">
+                        <defs>
+                          <clipPath id="label-clip">
+                            <circle cx="70" cy="70" r="28"/>
+                          </clipPath>
+                          <radialGradient id="vinyl-gradient" cx="30%" cy="30%">
+                            <stop offset="0%" stop-color="#3a3a3a"/>
+                            <stop offset="100%" stop-color="#0a0a0a"/>
+                          </radialGradient>
+                          <linearGradient id="shine" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="rgba(255,255,255,0.1)"/>
+                            <stop offset="50%" stop-color="rgba(255,255,255,0)"/>
+                            <stop offset="100%" stop-color="rgba(255,255,255,0.05)"/>
+                          </linearGradient>
+                        </defs>
+                        <!-- Disco principal -->
+                        <circle cx="70" cy="70" r="68" fill="url(#vinyl-gradient)" stroke="#ff4d7d" stroke-width="1" stroke-opacity="0.5"/>
+                        <!-- Surcos -->
+                        <circle cx="70" cy="70" r="60" fill="none" stroke="#333" stroke-width="0.5"/>
+                        <circle cx="70" cy="70" r="52" fill="none" stroke="#2a2a2a" stroke-width="1"/>
+                        <circle cx="70" cy="70" r="44" fill="none" stroke="#333" stroke-width="0.5"/>
+                        <circle cx="70" cy="70" r="36" fill="none" stroke="#2a2a2a" stroke-width="1"/>
+                        <!-- Galleta con fondo rosa -->
+                        <circle cx="70" cy="70" r="28" fill="#ff4d7d"/>
+                        <image href="https://dev.control2dance.es/logo-blanco.svg" x="42" y="42" width="56" height="56" clip-path="url(#label-clip)" preserveAspectRatio="xMidYMid slice"/>
+                        <circle cx="70" cy="70" r="28" fill="none" stroke="#e6366a" stroke-width="1.5"/>
                         <!-- Agujero central -->
-                        <circle cx="60" cy="60" r="3" fill="#0a0a0f"/>
+                        <circle cx="70" cy="70" r="4" fill="#0a0a0f"/>
                         <!-- Brillo -->
-                        <ellipse cx="45" cy="45" rx="20" ry="10" fill="rgba(255,255,255,0.03)" transform="rotate(-45 60 60)"/>
+                        <circle cx="70" cy="70" r="68" fill="url(#shine)"/>
                       </svg>
-                      <!-- Brazo del tocadiscos -->
-                      <div style="position: absolute; top: 10px; right: 10px; width: 50px; height: 6px; background: linear-gradient(90deg, #666 0%, #888 50%, #666 100%); border-radius: 3px; transform: rotate(-30deg); transform-origin: right center;">
-                        <div style="position: absolute; right: -4px; top: -2px; width: 10px; height: 10px; background: #555; border-radius: 50%;"></div>
-                        <div style="position: absolute; left: -2px; top: 1px; width: 8px; height: 4px; background: #444; border-radius: 2px;"></div>
-                      </div>
                     </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top: 15px;">
+                    <span style="display: inline-block; background: linear-gradient(90deg, #ff4d7d, #ff6b9d); color: #ffffff; font-size: 11px; font-weight: 700; letter-spacing: 3px; padding: 8px 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(255,77,125,0.3);">
+                      ✦ DIGITAL ARCHIVE ✦
+                    </span>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
           <tr>
-            <td align="center" style="padding: 25px 30px 15px;">
-              <span style="display: inline-block; background-color: rgba(255, 77, 125, 0.15); color: #ff4d7d; font-size: 10px; font-weight: 600; letter-spacing: 2px; padding: 6px 14px; border-radius: 4px; border: 1px solid rgba(255, 77, 125, 0.3);">
-                DIGITAL ARCHIVE
-              </span>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 10px 35px 40px;">
+            <td style="padding: 10px 35px 40px; background: #ffffff;">
               <h2 style="margin: 0 0 14px; color: #1a1a1a; font-size: 24px; font-weight: 700; text-align: center;">
                 Recupera tu contraseña
               </h2>
@@ -93,7 +100,7 @@
             </td>
           </tr>
           <tr>
-            <td style="padding: 18px 30px; background-color: #f9f9f9; border-top: 1px solid #e5e5e5;">
+            <td style="padding: 18px 30px; background-color: #ffffff; border-top: 4px solid #ff4d7d;">
               <p style="margin: 0; color: #888888; font-size: 10px; text-align: center; letter-spacing: 0.5px;">
                 © 2026 Control2Dance Records · Makina · Hard House · Bumping
               </p>
