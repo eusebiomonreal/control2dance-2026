@@ -1,14 +1,32 @@
 import React, { useEffect } from 'react';
 import { useStore } from '@nanostores/react';
-import { Loader2, Disc } from 'lucide-react';
-import { loading, fetchProducts } from '../stores/productStore';
+import { Loader2, Disc, AlertCircle, RefreshCw } from 'lucide-react';
+import { loading, error, fetchProducts } from '../stores/productStore';
 
 export default function GlobalLoader() {
   const $loading = useStore(loading);
+  const $error = useStore(error);
 
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  // Show error state
+  if ($error && !$loading) {
+    return (
+      <div className="fixed inset-0 z-[1000] bg-[#020308] flex flex-col items-center justify-center gap-6 p-10 text-center">
+        <AlertCircle className="w-16 h-16 text-red-500" />
+        <p className="text-white text-lg">{$error}</p>
+        <button
+          onClick={() => fetchProducts()}
+          className="flex items-center gap-2 px-6 py-3 bg-[#ff4d7d] hover:bg-[#e6366a] text-white rounded-lg transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Reintentar
+        </button>
+      </div>
+    );
+  }
 
   if (!$loading) return null;
 

@@ -12,16 +12,30 @@ export const selectedGenre = atom('all');
 export const selectedStyle = atom('all');
 export const selectedProduct = atom<Product | null>(null);
 
-// Fetch products desde Supabase
+// Fetch products desde Supabase con timeout
 export async function fetchProducts() {
   loading.set(true);
   error.set(null);
+
   try {
-    const data = await productService.getProducts();
+    // Timeout de 10 segundos
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout')), 10000);
+    });
+
+    const data = await Promise.race([
+      productService.getProducts(),
+      timeoutPromise
+    ]);
+
     products.set(data);
   } catch (err) {
     console.error('Error fetching products:', err);
-    error.set('Error al cargar los productos');
+    const message = err instanceof Error && err.message === 'Timeout'
+      ? 'Tiempo de espera agotado. Recarga la página.'
+      : 'Error al cargar los productos';
+    error.set(message);
+    products.set([]); // Set empty array to allow page to render
   } finally {
     loading.set(false);
   }

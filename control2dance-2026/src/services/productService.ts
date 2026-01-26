@@ -67,6 +67,8 @@ export const productService = {
    * Obtener todos los productos activos
    */
   async getProducts(): Promise<Product[]> {
+    console.log('[ProductService] Fetching products from Supabase...');
+
     const { data, error } = await supabase
       .from('products')
       .select('*')
@@ -74,10 +76,11 @@ export const productService = {
       .order('year', { ascending: false });
 
     if (error) {
-      console.error('Error fetching products:', error);
-      return [];
+      console.error('[ProductService] Error fetching products:', error);
+      throw new Error(error.message || 'Error al cargar productos');
     }
 
+    console.log(`[ProductService] Fetched ${data?.length || 0} products`);
     return (data || []).map(mapDBProductToFrontend);
   },
 
