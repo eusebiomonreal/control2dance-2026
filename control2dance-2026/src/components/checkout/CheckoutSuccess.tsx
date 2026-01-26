@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { clearCart } from '../../stores/cartStore';
-import { CheckCircle, Download, Mail, ShoppingBag, ArrowRight } from 'lucide-react';
+import { CheckCircle, Download, Mail, ShoppingBag, ArrowRight, AlertTriangle } from 'lucide-react';
 
 interface CheckoutSuccessProps {
   sessionId: string | null;
@@ -45,9 +45,21 @@ export default function CheckoutSuccess({ sessionId }: CheckoutSuccessProps) {
         </div>
 
         <h1 className="text-2xl font-bold text-white mb-2">¡Compra Exitosa!</h1>
-        <p className="text-zinc-400 mb-8">
+        <p className="text-zinc-400 mb-6">
           Tu pedido ha sido procesado correctamente
         </p>
+
+        {/* SPAM Warning */}
+        <div className="bg-amber-500/20 border-2 border-amber-500/50 rounded-xl p-4 mb-8">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <AlertTriangle className="w-6 h-6 text-amber-400" />
+            <span className="text-lg font-bold text-amber-400">¡IMPORTANTE!</span>
+            <AlertTriangle className="w-6 h-6 text-amber-400" />
+          </div>
+          <p className="text-amber-200 font-medium">
+            Si no recibes el email en unos minutos, revisa tu carpeta de <span className="text-amber-400 font-bold">SPAM</span> o correo no deseado.
+          </p>
+        </div>
 
         {/* Info Cards */}
         <div className="space-y-4 mb-8">

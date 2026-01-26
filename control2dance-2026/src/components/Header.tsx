@@ -8,7 +8,7 @@ import UserMenu from './auth/UserMenu';
 const Logo = () => (
   <a href="/" className="flex items-center select-none group cursor-pointer transition-transform duration-300 active:scale-95">
     <img
-      src="https://control2dance.es/wp-content/uploads/2022/08/LogoControl2DanceBlanco.png"
+      src="/logo-blanco.svg"
       alt="Control2Dance Logo"
       className="h-8 md:h-10 w-auto object-contain"
     />
