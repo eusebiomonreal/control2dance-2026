@@ -109,18 +109,27 @@ export async function resetPassword(email: string) {
   $authLoading.set(true);
   $authError.set(null);
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${import.meta.env.PUBLIC_SITE_URL}/auth/reset-password`
-  });
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${import.meta.env.PUBLIC_SITE_URL}/auth/reset-password`
+    });
 
-  if (error) {
-    $authError.set(translateAuthError(error.message));
+    if (error) {
+      console.error('Reset password error:', error);
+      const errorMessage = error.message || error.name || 'Error al enviar el email de recuperación';
+      $authError.set(translateAuthError(errorMessage));
+      $authLoading.set(false);
+      return { success: false, error };
+    }
+
     $authLoading.set(false);
-    return { success: false, error };
+    return { success: true };
+  } catch (err) {
+    console.error('Reset password exception:', err);
+    $authError.set('Error de conexión. Por favor, inténtalo de nuevo.');
+    $authLoading.set(false);
+    return { success: false, error: err };
   }
-
-  $authLoading.set(false);
-  return { success: true };
 }
 
 export async function updateUserPassword(newPassword: string) {
@@ -160,7 +169,11 @@ export async function updateUserProfile(data: { name?: string; avatar_url?: stri
 }
 
 // Traducir errores de Supabase al español
-function translateAuthError(message: string): string {
+function translateAuthError(message: string | undefined): string {
+  if (!message) {
+    return 'Ha ocurrido un error. Por favor, inténtalo de nuevo.';
+  }
+
   const translations: Record<string, string> = {
     'Invalid login credentials': 'Email o contraseña incorrectos',
     'Email not confirmed': 'Por favor, confirma tu email antes de iniciar sesión',
@@ -168,7 +181,9 @@ function translateAuthError(message: string): string {
     'Password should be at least 6 characters': 'La contraseña debe tener al menos 6 caracteres',
     'Unable to validate email address: invalid format': 'El formato del email no es válido',
     'Email rate limit exceeded': 'Demasiados intentos. Por favor, espera unos minutos',
-    'For security purposes, you can only request this once every 60 seconds': 'Por seguridad, solo puedes solicitar esto una vez cada 60 segundos'
+    'For security purposes, you can only request this once every 60 seconds': 'Por seguridad, solo puedes solicitar esto una vez cada 60 segundos',
+    'Email link is invalid or has expired': 'El enlace ha expirado o no es válido',
+    'AuthApiError': 'Error de autenticación. Por favor, inténtalo de nuevo.'
   };
 
   return translations[message] || message;
