@@ -247,16 +247,14 @@ services:
       GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
       GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
       GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
-      # Custom email templates (local files)
-      GOTRUE_MAILER_TEMPLATES_INVITE: /templates/invite.html
-      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: /templates/confirmation.html
-      GOTRUE_MAILER_TEMPLATES_RECOVERY: /templates/recovery.html
-      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: /templates/magic_link.html
-      GOTRUE_MAILER_TEMPLATES_EMAIL_CHANGE: /templates/email_change.html
+      # Custom email templates (URLs)
+      GOTRUE_MAILER_TEMPLATES_INVITE: ${MAILER_TEMPLATE_INVITE:-}
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: ${MAILER_TEMPLATE_CONFIRMATION:-}
+      GOTRUE_MAILER_TEMPLATES_RECOVERY: ${MAILER_TEMPLATE_RECOVERY:-}
+      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: ${MAILER_TEMPLATE_MAGIC_LINK:-}
+      GOTRUE_MAILER_TEMPLATES_EMAIL_CHANGE: ${MAILER_TEMPLATE_EMAIL_CHANGE:-}
       GOTRUE_EXTERNAL_PHONE_ENABLED: ${ENABLE_PHONE_SIGNUP:-false}
       GOTRUE_SMS_AUTOCONFIRM: ${ENABLE_PHONE_AUTOCONFIRM:-false}
-    volumes:
-      - ./supabase-templates:/templates:ro
     networks:
       - dokploy-network
 
