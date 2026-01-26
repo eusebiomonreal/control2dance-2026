@@ -32,9 +32,9 @@ export default function NewsletterComposer() {
   const [loadingProducts, setLoadingProducts] = useState(true);
 
   // Email state
-  const [subject, setSubject] = useState('');
-  const [headerText, setHeaderText] = useState('');
-  const [footerText, setFooterText] = useState('');
+  const [subject, setSubject] = useState('🎵 Nuevos discos en Control2Dance');
+  const [headerText, setHeaderText] = useState('¡Hola! Echa un vistazo a los últimos discos que hemos añadido al archivo digital. Listos para sonar en tu próxima sesión.');
+  const [footerText, setFooterText] = useState('Gracias por formar parte de la comunidad. ¡Nos vemos en la pista!');
   
   // Recipients
   const [recipientType, setRecipientType] = useState<'all' | 'test'>('test');
