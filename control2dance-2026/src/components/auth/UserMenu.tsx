@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
 import { $user, $userName, $userAvatar, $isAuthenticated, logout } from '../../stores/authStore';
-import { User, LogOut, ShoppingBag, Download, Settings, ChevronDown } from 'lucide-react';
+import { User, LogOut, ShoppingBag, Download, Settings, ChevronDown, Shield } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 export default function UserMenu() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const isAuthenticated = useStore($isAuthenticated);
   const userName = useStore($userName);
@@ -21,6 +23,23 @@ export default function UserMenu() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Check if user is admin
+  useEffect(() => {
+    async function checkAdmin() {
+      if (!user?.id) {
+        setIsAdmin(false);
+        return;
+      }
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+      setIsAdmin(data?.role === 'admin');
+    }
+    checkAdmin();
+  }, [user?.id]);
 
   const handleLogout = async () => {
     await logout();
@@ -99,6 +118,15 @@ export default function UserMenu() {
               <Settings className="w-4 h-4" />
               Configuración
             </a>
+            {isAdmin && (
+              <a
+                href="/admin"
+                className="flex items-center gap-3 px-3 py-2 text-sm text-[#ff4d7d] hover:text-[#ff6b94] hover:bg-zinc-800 rounded-lg transition-colors"
+              >
+                <Shield className="w-4 h-4" />
+                Admin Panel
+              </a>
+            )}
           </div>
 
           <div className="p-2 border-t border-zinc-800">
