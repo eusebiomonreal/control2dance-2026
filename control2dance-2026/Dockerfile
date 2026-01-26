@@ -42,6 +42,8 @@ ENV HOST=0.0.0.0
 ENV PORT=4321
 ENV NODE_ENV=production
 
+# Server-side env vars will be passed at runtime via docker-compose/dokploy
+
 # Expose the port
 EXPOSE 4321
 
