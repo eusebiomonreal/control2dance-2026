@@ -23,6 +23,7 @@ services:
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
       - PUBLIC_SITE_URL=${PUBLIC_SITE_URL}
       - RESEND_API_KEY=${RESEND_API_KEY}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-hola@control2dance.es}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.control2dance.rule=Host(`dev.control2dance.es`)"

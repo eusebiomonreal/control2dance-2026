@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { constructWebhookEvent, stripe } from '../../../lib/stripe';
 import { createServerClient } from '../../../lib/supabase';
 import { nanoid } from 'nanoid';
+import { sendOrderEmails } from '../../../services/emailService';
 
 // Desactivar verificación de origen para webhooks externos
 export const prerender = false;
@@ -188,7 +189,45 @@ async function handleCheckoutComplete(session: any) {
     }
   }
 
-  // TODO: Enviar email de confirmación con enlaces de descarga
+  // 5. Enviar emails de confirmación
+  const customerEmail = session.customer_email || session.customer_details?.email;
+  const siteUrl = process.env.PUBLIC_SITE_URL || 'https://dev.control2dance.es';
+  
+  // Preparar datos de los items para el email
+  const orderItems = lineItems.data.map(item => {
+    const product = item.price?.product as any;
+    return {
+      product_name: item.description || product?.name || 'Producto',
+      product_catalog_number: product?.description || null,
+      price: (item.amount_total || 0) / 100,
+      quantity: item.quantity || 1
+    };
+  });
+
+  // Enviar emails (cliente y admin)
+  try {
+    const emailResult = await sendOrderEmails({
+      orderId: order.id,
+      customerEmail: customerEmail,
+      customerName: session.customer_details?.name,
+      items: orderItems,
+      total: (session.amount_total || 0) / 100,
+      stripeSessionId: session.id,
+      stripePaymentIntent: session.payment_intent,
+      receiptUrl: receiptUrl,
+      downloadUrl: `${siteUrl}/dashboard/downloads`
+    });
+
+    if (emailResult.customer) {
+      console.log('✅ Customer confirmation email sent');
+    }
+    if (emailResult.admin) {
+      console.log('✅ Admin notification email sent');
+    }
+  } catch (e) {
+    console.error('⚠️ Error sending order emails:', e);
+    // No lanzar error - los emails no son críticos
+  }
 
   console.log(`Order ${order.id} created successfully for ${customerEmail}`);
 }
