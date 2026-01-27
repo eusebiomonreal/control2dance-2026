@@ -184,7 +184,7 @@ function generateCustomerEmailHtml(data: OrderEmailData): string {
               
               <p style="margin: 0; color: #888888; font-size: 12px; line-height: 1.6; text-align: center;">
                 También puedes acceder desde tu <a href="${siteUrl}/dashboard/downloads" style="color: #ff4d7d; text-decoration: none; font-weight: 600;">panel de usuario</a> 👤<br>
-                ⏰ Los enlaces de descarga expiran en 30 días.
+                ⏰ Los enlaces expiran en 30 días · 3️⃣ Máximo 3 descargas por archivo
               </p>
             </td>
           </tr>

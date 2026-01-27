@@ -68,15 +68,19 @@ export const productService = {
    */
   async getProducts(): Promise<Product[]> {
     console.log('[ProductService] Fetching products from Supabase...');
+    console.log('[ProductService] URL:', import.meta.env.PUBLIC_SUPABASE_URL);
 
-    const { data, error } = await supabase
+    const { data, error, status } = await supabase
       .from('products')
       .select('*')
       .eq('is_active', true)
       .order('year', { ascending: false });
 
+    console.log('[ProductService] Response status:', status);
+
     if (error) {
       console.error('[ProductService] Error fetching products:', error);
+      console.error('[ProductService] Error details:', JSON.stringify(error, null, 2));
       throw new Error(error.message || 'Error al cargar productos');
     }
 

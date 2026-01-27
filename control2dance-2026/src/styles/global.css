@@ -42,3 +42,48 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: var(--c2d-salmon); }
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* Jodit Editor Dark Theme Overrides */
+.jodit-dark .jodit-container {
+    background-color: #18181b !important;
+    border-color: #3f3f46 !important;
+    border-radius: 8px !important;
+}
+.jodit-dark .jodit-toolbar__box {
+    background-color: #27272a !important;
+    border-color: #3f3f46 !important;
+}
+.jodit-dark .jodit-toolbar-button__button {
+    color: #a1a1aa !important;
+}
+.jodit-dark .jodit-toolbar-button__button:hover {
+    background-color: #3f3f46 !important;
+    color: #ff4d7d !important;
+}
+.jodit-dark .jodit-wysiwyg {
+    background-color: #18181b !important;
+    color: #fff !important;
+}
+.jodit-dark .jodit-placeholder {
+    color: #71717a !important;
+}
+.jodit-dark .jodit-status-bar {
+    background-color: #27272a !important;
+    border-color: #3f3f46 !important;
+}
+.jodit-dark .jodit-popup {
+    background-color: #27272a !important;
+    border-color: #3f3f46 !important;
+}
+.jodit-dark .jodit-popup__content {
+    background-color: #27272a !important;
+}
+.jodit-dark .jodit-ui-input__input {
+    background-color: #18181b !important;
+    color: #fff !important;
+    border-color: #3f3f46 !important;
+}
+.jodit-dark .jodit-ui-button {
+    background-color: #3f3f46 !important;
+    color: #fff !important;
+}

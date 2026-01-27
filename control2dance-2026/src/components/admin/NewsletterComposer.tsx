@@ -2,9 +2,12 @@
  * NewsletterComposer - Composición y envío de newsletters
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import { Mail, Search, X, Send, ChevronLeft, ChevronRight, Eye, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+
+// Importación dinámica para evitar errores de SSR
+const JoditEditor = lazy(() => import('jodit-react'));
 
 interface Product {
   id: string;
@@ -56,12 +59,18 @@ export default function NewsletterComposer() {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, catalog_number, cover_image, price, year, label, genre')
-        .eq('is_active', true)
+        .select('id, name, catalog_number, cover_image, price, year, label, genre, is_active')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setProducts(data || []);
+      if (error) {
+        console.error('Error loading products:', error);
+        throw error;
+      }
+      
+      // Filtrar productos activos (o todos si is_active no existe)
+      const activeProducts = data?.filter(p => p.is_active !== false) || [];
+      console.log('Productos cargados:', activeProducts.length, 'de', data?.length);
+      setProducts(activeProducts);
     } catch (e) {
       console.error('Error loading products:', e);
     }
@@ -308,24 +317,56 @@ export default function NewsletterComposer() {
 
             <div>
               <label className="block text-sm text-zinc-400 mb-2">Texto de cabecera (opcional)</label>
-              <textarea
-                value={headerText}
-                onChange={(e) => setHeaderText(e.target.value)}
-                placeholder="Ej: ¡Hola! Mira los últimos vinilos que hemos añadido..."
-                rows={2}
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-pink-500 resize-none"
-              />
+              <div className="jodit-dark rounded-lg overflow-hidden">
+                <Suspense fallback={<div className="h-48 bg-zinc-800 animate-pulse rounded-lg" />}>
+                  <JoditEditor
+                    value={headerText}
+                    config={{
+                      readonly: false,
+                      theme: 'dark',
+                      height: 200,
+                      placeholder: '¡Hola! Mira los últimos vinilos que hemos añadido...',
+                      buttons: ['bold', 'italic', 'underline', 'strikethrough', '|', 'ul', 'ol', '|', 'font', 'fontsize', 'brush', '|', 'link', 'image', '|', 'align', '|', 'undo', 'redo', '|', 'eraser', 'source'],
+                      buttonsMD: ['bold', 'italic', 'underline', '|', 'ul', 'ol', '|', 'brush', 'link', '|', 'source'],
+                      buttonsSM: ['bold', 'italic', '|', 'brush', 'link'],
+                      toolbarAdaptive: true,
+                      showCharsCounter: false,
+                      showWordsCounter: false,
+                      showXPathInStatusbar: false,
+                      askBeforePasteHTML: false,
+                      askBeforePasteFromWord: false,
+                      disablePlugins: ['speech-recognize', 'ai-assistant'],
+                    }}
+                    onBlur={(newContent) => setHeaderText(newContent)}
+                  />
+                </Suspense>
+              </div>
             </div>
 
             <div>
               <label className="block text-sm text-zinc-400 mb-2">Texto de pie (opcional)</label>
-              <textarea
-                value={footerText}
-                onChange={(e) => setFooterText(e.target.value)}
-                placeholder="Ej: ¡Gracias por ser parte de la comunidad!"
-                rows={2}
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-pink-500 resize-none"
-              />
+              <div className="jodit-dark rounded-lg overflow-hidden">
+                <Suspense fallback={<div className="h-36 bg-zinc-800 animate-pulse rounded-lg" />}>
+                  <JoditEditor
+                    value={footerText}
+                    config={{
+                      readonly: false,
+                      theme: 'dark',
+                      height: 150,
+                      placeholder: '¡Gracias por ser parte de la comunidad!',
+                      buttons: ['bold', 'italic', 'underline', '|', 'brush', 'link', '|', 'eraser', 'source'],
+                      toolbarAdaptive: true,
+                      showCharsCounter: false,
+                      showWordsCounter: false,
+                      showXPathInStatusbar: false,
+                      askBeforePasteHTML: false,
+                      askBeforePasteFromWord: false,
+                      disablePlugins: ['speech-recognize', 'ai-assistant'],
+                    }}
+                    onBlur={(newContent) => setFooterText(newContent)}
+                  />
+                </Suspense>
+              </div>
             </div>
           </div>
 
