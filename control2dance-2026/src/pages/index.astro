@@ -14,7 +14,7 @@ import '../styles/global.css';
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 		<meta name="generator" content={Astro.generator} />
 		<title>Control2Dance | The Vault Lab</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,7 +28,7 @@ import '../styles/global.css';
         <!-- Último lanzamiento destacado -->
         <FeaturedRelease client:visible />
         
-        <section id="catalogo" class="max-w-screen-2xl mx-auto px-8 pb-32 scroll-mt-8">
+        <section id="catalogo" class="max-w-screen-2xl mx-auto px-4 md:px-8 pb-20 md:pb-32 scroll-mt-32 md:scroll-mt-32">
             <Filters client:visible />
             <ProductGrid client:visible />
         </section>

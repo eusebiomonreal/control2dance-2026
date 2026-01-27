@@ -16,6 +16,7 @@ export default function FeaturedRelease() {
   const [progress, setProgress] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const product = products[currentIndex] || null;
@@ -26,6 +27,16 @@ export default function FeaturedRelease() {
       if (audioRef.current) {
         audioRef.current.pause();
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsMobile(mql.matches);
+    update();
+    mql.addEventListener('change', update);
+    return () => {
+      mql.removeEventListener('change', update);
     };
   }, []);
 
@@ -158,9 +169,9 @@ export default function FeaturedRelease() {
   const totalTracks = product.audioUrls?.length || 0;
 
   return (
-    <section className="max-w-screen-2xl mx-auto px-8 py-16 relative">
+    <section className="max-w-screen-2xl mx-auto px-4 pb-8 pt-24 md:px-8 md:pb-16 md:pt-32 relative">
       {/* Badge flotante */}
-      <div className="flex items-center justify-between mb-6 relative z-50">
+      <div className="flex items-center justify-between mb-4 md:mb-6 relative z-50">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-[#ff4d7d]" />
           <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#ff4d7d]">
@@ -177,7 +188,7 @@ export default function FeaturedRelease() {
             >
               <ChevronLeft className="w-5 h-5 text-white" />
             </button>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 hidden md:flex">
               {products.map((_, idx) => (
                 <button
                   key={idx}
@@ -228,22 +239,23 @@ export default function FeaturedRelease() {
         </div>
 
         {/* Contenido principal - padding top extra para la aguja */}
-        <div className="relative z-10 p-10 pt-20 md:p-16 md:pt-24 lg:p-20 lg:pt-28 flex flex-col md:flex-row gap-10 md:gap-16 items-center overflow-visible">
+        <div className="relative z-10 p-4 pt-8 md:p-16 md:pt-24 lg:p-20 lg:pt-28 flex flex-col md:flex-row gap-6 md:gap-16 items-center justify-center overflow-visible">
           
-          {/* Vinyl Record Container - sin overflow hidden para ver la aguja */}
-          <div className="relative w-64 h-64 md:w-80 md:h-80 lg:w-96 lg:h-96 flex-shrink-0 cursor-pointer" onClick={togglePlay}>
+          {/* Vinyl Record Container - centrado en móvil */}
+          <div className="w-full md:w-auto flex justify-center md:block">
+            <div className="relative w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 lg:w-96 lg:h-96 flex-shrink-0 cursor-pointer" onClick={togglePlay}>
             {/* Glow effect */}
-            <div className={`absolute inset-0 rounded-full bg-[#ff4d7d]/20 blur-3xl transition-all duration-500 ${isPlaying ? 'opacity-60 scale-110' : 'opacity-20 scale-100'}`} />
+            <div className={`absolute inset-0 rounded-full bg-[#ff4d7d]/20 blur-3xl transition-all duration-500 ${isPlaying ? 'opacity-60 md:scale-110' : 'opacity-20 scale-100'}`} />
 
             {/* Vinyl disc - se mueve a la derecha al reproducir */}
             <div
-              className={`absolute inset-0 rounded-full bg-gradient-to-br from-zinc-900 via-black to-zinc-800 shadow-2xl transition-all duration-700 ease-out ${
+              className={`absolute inset-0 rounded-full bg-gradient-to-br from-zinc-900 via-black to-zinc-800 shadow-2xl md:transition-all md:duration-700 md:ease-out ${
                 isPlaying
-                  ? 'translate-x-[60%]'
-                  : 'translate-x-0'
+                  ? 'md:translate-x-[60%] md:scale-100 z-20 md:z-0'
+                  : 'translate-x-0 z-0'
               }`}
               style={{
-                animation: isPlaying ? 'spin 3s linear infinite' : 'none',
+                animation: isPlaying && !isMobile ? 'spin 3s linear infinite' : 'none',
               }}
             >
               {/* Vinyl grooves */}
@@ -292,7 +304,7 @@ export default function FeaturedRelease() {
 
             {/* Turntable Arm - posicionado a la derecha donde sale el vinilo */}
             <div 
-              className={`absolute -top-16 right-[-70%] w-56 h-80 z-30 pointer-events-none transition-opacity duration-500 delay-200 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
+              className={`hidden md:block absolute -top-16 right-[-70%] w-56 h-80 z-30 pointer-events-none transition-opacity duration-500 delay-200 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
             >
               <svg 
                 viewBox="0 0 160 220" 
@@ -308,9 +320,10 @@ export default function FeaturedRelease() {
               </svg>
             </div>
           </div>
+          </div>
 
-          {/* Info del disco - movido más a la derecha */}
-          <div className="flex-1 text-center md:text-left space-y-6 md:pl-32 lg:pl-48">
+          {/* Info del disco */}
+          <div className="w-full md:flex-1 text-center md:text-left space-y-4 md:space-y-6 px-2 md:px-0 md:pl-8 lg:pl-12 xl:pl-16">
             {/* Catalog number */}
             <div className="inline-flex items-center gap-3 px-4 py-2 bg-white/5 border border-white/10 rounded-full">
               <span className="text-xs font-bold text-[#ff4d7d] uppercase tracking-wider">
@@ -326,10 +339,10 @@ export default function FeaturedRelease() {
 
             {/* Nombre y artista */}
             <div>
-              <h2 className="text-4xl md:text-6xl lg:text-7xl font-black text-white uppercase tracking-tight leading-none mb-3">
+              <h2 className="text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-black text-white uppercase tracking-tight leading-none mb-2 md:mb-3">
                 {product.name}
               </h2>
-              <p className="text-xl md:text-2xl lg:text-3xl text-zinc-400 font-medium">
+              <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-zinc-400 font-medium">
                 {product.brand}
               </p>
             </div>
@@ -337,46 +350,49 @@ export default function FeaturedRelease() {
             {/* Track preview */}
             {product.audioUrls && product.audioUrls.length > 0 && (
               <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  {/* Botón anterior */}
-                  {totalTracks > 1 && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); skipTrack('prev'); }}
-                      className="w-10 h-10 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center transition-all"
-                    >
-                      <SkipBack className="w-4 h-4" />
-                    </button>
-                  )}
-                  
-                  {/* Botón play/pause */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                      isPlaying 
-                        ? 'bg-[#ff4d7d] text-white' 
-                        : 'bg-white/10 text-white hover:bg-white/20'
-                    }`}
-                  >
-                    {isPlaying ? (
-                      <Pause className="w-5 h-5" />
-                    ) : (
-                      <Play className="w-5 h-5 ml-0.5" />
+                <div className="flex flex-col md:flex-row items-center gap-3 md:gap-4 justify-center md:justify-start">
+                  {/* Controles de reproducción */}
+                  <div className="flex items-center gap-3 justify-center">
+                    {/* Botón anterior */}
+                    {totalTracks > 1 && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); skipTrack('prev'); }}
+                        className="w-10 h-10 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center transition-all"
+                      >
+                        <SkipBack className="w-4 h-4" />
+                      </button>
                     )}
-                  </button>
-                  
-                  {/* Botón siguiente */}
-                  {totalTracks > 1 && (
+                    
+                    {/* Botón play/pause */}
                     <button
-                      onClick={(e) => { e.stopPropagation(); skipTrack('next'); }}
-                      className="w-10 h-10 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center transition-all"
+                      onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+                      className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                        isPlaying 
+                          ? 'bg-[#ff4d7d] text-white' 
+                          : 'bg-white/10 text-white hover:bg-white/20'
+                      }`}
                     >
-                      <SkipForward className="w-4 h-4" />
+                      {isPlaying ? (
+                        <Pause className="w-5 h-5" />
+                      ) : (
+                        <Play className="w-5 h-5 ml-0.5" />
+                      )}
                     </button>
-                  )}
+                    
+                    {/* Botón siguiente */}
+                    {totalTracks > 1 && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); skipTrack('next'); }}
+                        className="w-10 h-10 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center transition-all"
+                      >
+                        <SkipForward className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                   
                   {/* Info del track */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{trackName}</p>
+                  <div className="text-center md:text-left w-full md:w-auto md:flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white px-4 md:px-0 md:truncate">{trackName}</p>
                     <p className="text-xs text-zinc-500">
                       {totalTracks > 1 ? `Track ${currentTrack + 1} de ${totalTracks}` : 'Preview disponible'}
                     </p>
@@ -415,7 +431,7 @@ export default function FeaturedRelease() {
             </div>
 
             {/* Acciones */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start pt-6">
+            <div className="flex flex-col gap-3 md:gap-4 w-full md:w-auto md:flex-row justify-center md:justify-start pt-4 md:pt-6">
               <button
                 onClick={handleAddToCart}
                 className="flex items-center justify-center gap-3 px-8 py-4 bg-[#ff4d7d] hover:bg-[#ff3366] text-white font-bold uppercase text-base tracking-wider rounded-xl transition-all hover:scale-105 shadow-lg shadow-[#ff4d7d]/25"

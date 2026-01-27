@@ -26,15 +26,15 @@ export default function Filters() {
   };
 
   return (
-    <div className="border-b border-white/5 pb-8 mb-8">
-      <div className="flex items-end justify-between mb-8">
-        <h2 className="text-4xl font-black uppercase tracking-tighter tracking-widest flex items-baseline gap-4">
-          COLLECTION <span className="text-[#ff4d7d]/30 text-2xl font-black">[{Object.keys($filtered).length}]</span>
+    <div className="border-b border-white/5 pb-4 md:pb-8 mb-4 md:mb-8">
+      <div className="flex items-end justify-between mb-4 md:mb-8">
+        <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tighter md:tracking-widest flex items-baseline gap-2 md:gap-4">
+          COLLECTION <span className="text-[#ff4d7d]/30 text-lg md:text-2xl font-black">[{Object.keys($filtered).length}]</span>
         </h2>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-3 md:gap-4">
+        <div className="flex items-center gap-2 w-full md:w-auto">
           <Filter className="w-4 h-4 text-[#ff4d7d]" />
           <span className="text-[9px] font-black uppercase tracking-wider text-zinc-500">Filtros:</span>
         </div>

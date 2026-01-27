@@ -11,7 +11,12 @@ body {
     color: #ffffff;
     margin: 0;
     overflow-x: hidden;
-    min-height: 100vh;
+    min-height: 100dvh;
+    -webkit-text-size-adjust: 100%;
+}
+
+html {
+    scroll-behavior: smooth;
 }
 
 .outline-text {
