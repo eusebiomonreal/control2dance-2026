@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { createProduct, updateProduct } from '../../stores/adminStore';
 import { storageService } from '../../services/storageService';
-import type { Product as DBProduct, AudioPreview } from '../../lib/database.types';
+import type { Product as DBProduct, AudioPreview, MasterFile } from '../../lib/database.types';
 import {
   Save,
   ArrowLeft,
@@ -49,7 +49,7 @@ interface FormData {
   country: string;
   cover_image: string;
   audio_previews: AudioPreview[];
-  master_file_path: string;
+  master_files: MasterFile[];
   is_active: boolean;
   // Campos de Discogs
   discogs_url: string;
@@ -81,6 +81,21 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
       });
     }
 
+    // Normalizar master_files - puede venir como string (legacy) o array de objetos
+    let normalizedMasterFiles: MasterFile[] = [];
+    const productAny = product as any;
+    if (productAny?.master_files && Array.isArray(productAny.master_files)) {
+      normalizedMasterFiles = productAny.master_files;
+    } else if (product?.master_file_path) {
+      // Legacy: convertir string a array
+      const fileName = product.master_file_path.split('/').pop() || 'master.wav';
+      normalizedMasterFiles = [{
+        path: product.master_file_path,
+        file_name: fileName,
+        file_size: 0
+      }];
+    }
+
     return {
       catalog_number: product?.catalog_number || '',
       name: product?.name || '',
@@ -96,7 +111,7 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
       country: product?.country || 'Spain',
       cover_image: product?.cover_image || '',
       audio_previews: normalizedPreviews,
-      master_file_path: product?.master_file_path || '',
+      master_files: normalizedMasterFiles,
       is_active: product?.is_active ?? true,
       // Campos de Discogs
       discogs_url: (product as any)?.discogs_url || '',
@@ -108,8 +123,204 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
 
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [uploadingMaster, setUploadingMaster] = useState(false);
   const [importingDiscogs, setImportingDiscogs] = useState(false);
   const [newStyle, setNewStyle] = useState('');
+  const [dragOverCover, setDragOverCover] = useState(false);
+  const [dragOverAudio, setDragOverAudio] = useState(false);
+  const [dragOverMaster, setDragOverMaster] = useState(false);
+
+  // Handlers para drag & drop de portada
+  const handleCoverDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverCover(true);
+  };
+
+  const handleCoverDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverCover(false);
+  };
+
+  const handleCoverDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverCover(false);
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith('image/')) {
+        await processCoverUpload(file);
+      } else {
+        setError('Solo se permiten archivos de imagen');
+      }
+    }
+  };
+
+  // Handlers para drag & drop de audio
+  const handleAudioDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverAudio(true);
+  };
+
+  const handleAudioDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverAudio(false);
+  };
+
+  const handleAudioDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverAudio(false);
+    
+    const files = Array.from(e.dataTransfer.files).filter(f => 
+      f.type.startsWith('audio/') || f.name.endsWith('.mp3') || f.name.endsWith('.wav')
+    );
+    
+    if (files.length > 0) {
+      await processAudioUpload(files);
+    } else {
+      setError('Solo se permiten archivos de audio (MP3, WAV)');
+    }
+  };
+
+  // Función compartida para procesar upload de portada
+  const processCoverUpload = async (file: File) => {
+    setUploadingCover(true);
+    setError(null);
+
+    try {
+      const result = await storageService.uploadCoverImage(file, formData.slug || formData.catalog_number);
+      if (result.success && result.url) {
+        setFormData(prev => ({ ...prev, cover_image: result.url! }));
+      } else {
+        setError(result.error || 'Error subiendo imagen');
+      }
+    } catch (err) {
+      setError('Error subiendo imagen');
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  // Función compartida para procesar upload de audio
+  const processAudioUpload = async (files: File[]) => {
+    setUploadingAudio(true);
+    setError(null);
+
+    try {
+      const newPreviews: AudioPreview[] = [];
+
+      for (const file of files) {
+        const result = await storageService.uploadAudioPreview(file, formData.slug || formData.catalog_number);
+        if (result.success && result.url) {
+          newPreviews.push({
+            url: result.url,
+            track_name: file.name.replace(/\.[^/.]+$/, '').replace(/-/g, ' ')
+          });
+        }
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        audio_previews: [...prev.audio_previews, ...newPreviews]
+      }));
+    } catch (err) {
+      setError('Error subiendo audio');
+    } finally {
+      setUploadingAudio(false);
+    }
+  };
+
+  // Handlers para drag & drop de archivo master
+  const handleMasterDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverMaster(true);
+  };
+
+  const handleMasterDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverMaster(false);
+  };
+
+  const handleMasterDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverMaster(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    const validExtensions = ['.wav', '.zip', '.rar', '.flac'];
+    
+    for (const file of files) {
+      const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+      if (validExtensions.includes(ext)) {
+        await processMasterUpload(file);
+      } else {
+        setError('Solo se permiten archivos WAV, ZIP, RAR o FLAC');
+      }
+    }
+  };
+
+  // Función para procesar upload de archivo master
+  const processMasterUpload = async (file: File) => {
+    setUploadingMaster(true);
+    setError(null);
+
+    try {
+      const result = await storageService.uploadMasterFile(file, formData.slug || formData.catalog_number);
+      if (result.success && result.path) {
+        const newMasterFile: MasterFile = {
+          path: result.path,
+          file_name: file.name,
+          file_size: file.size
+        };
+        setFormData(prev => ({
+          ...prev,
+          master_files: [...prev.master_files, newMasterFile]
+        }));
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      } else {
+        setError(result.error || 'Error subiendo archivo master');
+      }
+    } catch (err) {
+      setError('Error subiendo archivo master');
+    } finally {
+      setUploadingMaster(false);
+    }
+  };
+
+  const handleMasterUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    for (const file of Array.from(files)) {
+      await processMasterUpload(file);
+    }
+  };
+
+  // Función para eliminar un archivo master
+  const removeMasterFile = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      master_files: prev.master_files.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Función para formatear tamaño de archivo
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
   // Importar datos desde Discogs
   const handleImportDiscogs = async () => {
@@ -181,53 +392,13 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    setUploadingCover(true);
-    setError(null);
-
-    try {
-      const result = await storageService.uploadCoverImage(file, formData.slug || formData.catalog_number);
-      if (result.success && result.url) {
-        setFormData(prev => ({ ...prev, cover_image: result.url! }));
-      } else {
-        setError(result.error || 'Error subiendo imagen');
-      }
-    } catch (err) {
-      setError('Error subiendo imagen');
-    } finally {
-      setUploadingCover(false);
-    }
+    await processCoverUpload(file);
   };
 
   const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
-
-    setUploadingAudio(true);
-    setError(null);
-
-    try {
-      const newPreviews: AudioPreview[] = [];
-
-      for (const file of Array.from(files)) {
-        const result = await storageService.uploadAudioPreview(file, formData.slug || formData.catalog_number);
-        if (result.success && result.url) {
-          newPreviews.push({
-            url: result.url,
-            track_name: file.name.replace(/\.[^/.]+$/, '').replace(/-/g, ' ')
-          });
-        }
-      }
-
-      setFormData(prev => ({
-        ...prev,
-        audio_previews: [...prev.audio_previews, ...newPreviews]
-      }));
-    } catch (err) {
-      setError('Error subiendo audio');
-    } finally {
-      setUploadingAudio(false);
-    }
+    await processAudioUpload(Array.from(files));
   };
 
   const removeAudioPreview = (index: number) => {
@@ -285,8 +456,10 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
         country: formData.country || null,
         cover_image: formData.cover_image || null,
         audio_previews: formData.audio_previews.length > 0 ? formData.audio_previews : null,
-        master_file_path: formData.master_file_path || null,
-        master_file_size: null,
+        master_files: formData.master_files.length > 0 ? formData.master_files : null,
+        // Legacy fields for backwards compatibility
+        master_file_path: formData.master_files.length > 0 ? formData.master_files[0].path : null,
+        master_file_size: formData.master_files.length > 0 ? formData.master_files[0].file_size : null,
         meta_title: `${formData.name} - ${formData.brand}`,
         meta_description: formData.description?.slice(0, 160) || null,
         is_active: formData.is_active,
@@ -781,7 +954,16 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
               </div>
             )}
 
-            <label className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-indigo-500 transition-colors">
+            <label 
+              className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+                dragOverAudio 
+                  ? 'border-indigo-500 bg-indigo-500/10' 
+                  : 'border-zinc-700 hover:border-indigo-500'
+              }`}
+              onDragOver={handleAudioDragOver}
+              onDragLeave={handleAudioDragLeave}
+              onDrop={handleAudioDrop}
+            >
               <input
                 type="file"
                 accept="audio/*"
@@ -794,11 +976,84 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
               ) : (
                 <>
                   <Upload className="w-8 h-8 text-zinc-500 mb-2" />
-                  <p className="text-zinc-400">Subir archivos de audio</p>
+                  <p className="text-zinc-400">
+                    {dragOverAudio ? 'Soltar archivos aquí' : 'Arrastra o haz clic para subir'}
+                  </p>
                   <p className="text-sm text-zinc-600">MP3, WAV, OGG (max 20MB)</p>
                 </>
               )}
             </label>
+          </div>
+
+          {/* Archivos Master (Descarga) */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">Archivos Master</h2>
+              <span className="text-xs text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">Descarga de pago</span>
+            </div>
+            <p className="text-sm text-zinc-500">
+              Estos son los archivos que los clientes descargarán tras la compra. Sube archivos WAV, FLAC o ZIP con todos los tracks.
+            </p>
+
+            {/* Lista de archivos master */}
+            {formData.master_files.length > 0 && (
+              <div className="space-y-2">
+                {formData.master_files.map((masterFile, index) => (
+                  <div key={index} className="p-4 bg-zinc-800 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Download className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm truncate">{masterFile.file_name}</p>
+                        <p className="text-xs text-zinc-500">
+                          {masterFile.file_size > 0 && formatFileSize(masterFile.file_size)}
+                          {masterFile.file_size > 0 && ' • '}
+                          <span className="truncate">{masterFile.path}</span>
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeMasterFile(index)}
+                        className="p-1 text-zinc-500 hover:text-red-400 flex-shrink-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div
+              className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl transition-all ${
+                dragOverMaster 
+                  ? 'border-emerald-500 bg-emerald-500/10' 
+                  : 'border-zinc-700 hover:border-emerald-500'
+              }`}
+              onDragOver={handleMasterDragOver}
+              onDragLeave={handleMasterDragLeave}
+              onDrop={handleMasterDrop}
+            >
+              <label className="cursor-pointer text-center">
+                <input
+                  type="file"
+                  accept=".wav,.flac,.zip,.rar"
+                  multiple
+                  onChange={handleMasterUpload}
+                  className="hidden"
+                />
+                {uploadingMaster ? (
+                  <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mx-auto" />
+                ) : (
+                  <>
+                    <Download className="w-8 h-8 text-zinc-500 mb-2 mx-auto" />
+                    <p className="text-zinc-400">
+                      {dragOverMaster ? 'Soltar archivos aquí' : 'Arrastra o haz clic para subir'}
+                    </p>
+                    <p className="text-sm text-zinc-600">WAV, FLAC, ZIP, RAR (max 500MB cada uno)</p>
+                  </>
+                )}
+              </label>
+            </div>
           </div>
         </div>
 
@@ -808,7 +1063,14 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
             <h2 className="text-lg font-semibold text-white">Portada</h2>
 
-            <div className="aspect-square bg-zinc-800 rounded-lg overflow-hidden">
+            <div 
+              className={`aspect-square bg-zinc-800 rounded-lg overflow-hidden relative transition-all ${
+                dragOverCover ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-zinc-900' : ''
+              }`}
+              onDragOver={handleCoverDragOver}
+              onDragLeave={handleCoverDragLeave}
+              onDrop={handleCoverDrop}
+            >
               {formData.cover_image ? (
                 <img
                   src={formData.cover_image}
@@ -816,8 +1078,19 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <ImageIcon className="w-12 h-12 text-zinc-600" />
+                <div className="w-full h-full flex flex-col items-center justify-center">
+                  <ImageIcon className="w-12 h-12 text-zinc-600 mb-2" />
+                  <p className="text-zinc-500 text-sm">Arrastra una imagen aquí</p>
+                </div>
+              )}
+              {dragOverCover && (
+                <div className="absolute inset-0 bg-indigo-500/20 flex items-center justify-center">
+                  <p className="text-white font-medium">Soltar imagen</p>
+                </div>
+              )}
+              {uploadingCover && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 text-white animate-spin" />
                 </div>
               )}
             </div>
@@ -825,19 +1098,14 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
             <label className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg cursor-pointer transition-colors">
               <input
                 type="file"
-                accept="image/*"
+                accept="image/webp,image/jpeg,image/png,image/gif"
                 onChange={handleCoverUpload}
                 className="hidden"
               />
-              {uploadingCover ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <>
-                  <Upload className="w-5 h-5" />
-                  Subir imagen
-                </>
-              )}
+              <Upload className="w-5 h-5" />
+              Subir imagen
             </label>
+            <p className="text-xs text-zinc-500 text-center">WebP, JPG, PNG (recomendado: WebP)</p>
 
             <input
               type="text"

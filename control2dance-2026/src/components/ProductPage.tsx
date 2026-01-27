@@ -190,12 +190,25 @@ const ProductPage: React.FC<ProductPageProps> = ({ product, prevProduct, nextPro
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getTrackName = (url: string) => {
+  // Obtener nombre del track - primero usa el array tracks, luego fallback a URL
+  const getTrackName = (url: string, trackIndex?: number) => {
+    // Si tenemos el nombre guardado en tracks, usarlo directamente
+    if (trackIndex !== undefined && product.tracks && product.tracks[trackIndex]) {
+      const savedName = product.tracks[trackIndex];
+      // Si el nombre guardado parece válido (no es solo un hash/timestamp), usarlo
+      if (savedName && !/^\d{10,}/.test(savedName) && savedName.length > 3) {
+        return cleanText(savedName);
+      }
+    }
+
+    // Fallback: extraer del nombre del archivo en la URL
     try {
       const filename = url.split('/').pop() || '';
       const nameWithoutExt = filename.replace(/\.mp3$/i, '');
 
+      // Limpiar timestamps y strings aleatorios del nombre generado
       let cleanName = nameWithoutExt
+        .replace(/-\d{13,}-[a-z0-9]{6}$/i, '') // Quitar timestamp-random del final
         .replace(/-Demo$/i, '')
         .replace(/_Demo$/i, '')
         .replace(/-/g, ' ')
@@ -574,7 +587,7 @@ const ProductPage: React.FC<ProductPageProps> = ({ product, prevProduct, nextPro
                       </button>
                       <div className="flex-1 space-y-1.5 min-w-0">
                         <div className="flex justify-between items-center gap-2">
-                          <span className="text-[10px] font-bold text-white truncate" title={getTrackName(url)}>{getTrackName(url)}</span>
+                          <span className="text-[10px] font-bold text-white truncate" title={getTrackName(url, idx)}>{getTrackName(url, idx)}</span>
                           {currentTrack === idx && (
                             <span className="text-[9px] font-bold text-zinc-500 shrink-0">
                               {formatTime(progress)} / {formatTime(duration)}

@@ -167,7 +167,28 @@ export async function getDownloadFiles(token: string): Promise<{
     return { error: 'Este enlace de descarga ha sido desactivado' };
   }
 
-  const product = downloadToken.product as { master_file_path?: string; name?: string; catalog_number?: string } | null;
+  const product = downloadToken.product as { 
+    master_files?: { path: string; file_name: string; file_size: number }[];
+    master_file_path?: string; 
+    name?: string; 
+    catalog_number?: string 
+  } | null;
+  
+  // Nuevo sistema: usar master_files si está disponible
+  if (product?.master_files && product.master_files.length > 0) {
+    const audioFiles = product.master_files.map(f => ({ 
+      name: f.file_name, 
+      size: f.file_size || 0 
+    }));
+    
+    return { 
+      files: audioFiles,
+      product: { name: product.name || '', catalog_number: product.catalog_number || '' },
+      downloads_remaining: downloadToken.max_downloads - downloadToken.download_count
+    };
+  }
+  
+  // Legacy: usar master_file_path
   if (!product?.master_file_path) {
     return { error: 'Archivo no disponible' };
   }
@@ -223,41 +244,61 @@ export async function getDownloadUrl(token: string, fileName?: string, skipCount
   }
 
   // Generar signed URL desde Supabase Storage
-  const product = downloadToken.product as { master_file_path?: string; catalog_number?: string } | null;
-  if (!product?.master_file_path) {
-    return { error: 'Archivo no disponible' };
-  }
-
-  // El master_file_path puede ser "downloads/C2D-XXX" o solo "C2D-XXX"
-  // Extraemos solo la carpeta del catálogo
-  const filePath = product.master_file_path.replace('downloads/', '');
+  const product = downloadToken.product as { 
+    master_files?: { path: string; file_name: string; file_size: number }[];
+    master_file_path?: string; 
+    catalog_number?: string 
+  } | null;
   
-  // Listar archivos en la carpeta del producto
-  const { data: files, error: listError } = await supabase.storage
-    .from('downloads')
-    .list(filePath);
-
-  if (listError || !files || files.length === 0) {
-    return { error: 'No se encontraron archivos para descargar' };
-  }
-
-  // Si se especifica un archivo, buscarlo; si no, usar el primero
-  let targetFile;
-  if (fileName) {
-    targetFile = files.find(f => f.name === fileName);
-    if (!targetFile) {
-      return { error: 'Archivo no encontrado' };
+  let targetFilePath: string;
+  
+  // Nuevo sistema: usar master_files
+  if (product?.master_files && product.master_files.length > 0) {
+    let targetMasterFile;
+    if (fileName) {
+      targetMasterFile = product.master_files.find(f => f.file_name === fileName);
+      if (!targetMasterFile) {
+        return { error: 'Archivo no encontrado' };
+      }
+    } else {
+      targetMasterFile = product.master_files[0];
     }
+    // El path ya es la ruta directa al archivo en el bucket downloads
+    targetFilePath = targetMasterFile.path.replace('downloads/', '');
+  } else if (product?.master_file_path) {
+    // Legacy: usar master_file_path como carpeta
+    const folderPath = product.master_file_path.replace('downloads/', '');
+    
+    // Listar archivos en la carpeta del producto
+    const { data: files, error: listError } = await supabase.storage
+      .from('downloads')
+      .list(folderPath);
+
+    if (listError || !files || files.length === 0) {
+      return { error: 'No se encontraron archivos para descargar' };
+    }
+
+    // Si se especifica un archivo, buscarlo; si no, usar el primero
+    let targetFile;
+    if (fileName) {
+      targetFile = files.find(f => f.name === fileName);
+      if (!targetFile) {
+        return { error: 'Archivo no encontrado' };
+      }
+    } else {
+      targetFile = files.find(f => f.name.endsWith('.wav') || f.name.endsWith('.zip'));
+      if (!targetFile) {
+        return { error: 'No se encontraron archivos de audio' };
+      }
+    }
+    targetFilePath = `${folderPath}/${targetFile.name}`;
   } else {
-    targetFile = files.find(f => f.name.endsWith('.wav') || f.name.endsWith('.zip'));
-    if (!targetFile) {
-      return { error: 'No se encontraron archivos de audio' };
-    }
+    return { error: 'Archivo no disponible' };
   }
 
   const { data: signedUrlData, error: urlError } = await supabase.storage
     .from('downloads')
-    .createSignedUrl(`${filePath}/${targetFile.name}`, 3600, {
+    .createSignedUrl(targetFilePath, 3600, {
       download: true  // Fuerza Content-Disposition: attachment
     });
 
@@ -282,7 +323,7 @@ export async function getDownloadUrl(token: string, fileName?: string, skipCount
       product_id: downloadToken.product_id
     });
 
-    await logActivity('download', `Descarga: ${product.master_file_path}`, {
+    await logActivity('download', `Descarga: ${targetFilePath}`, {
       product_id: downloadToken.product_id
     });
   }

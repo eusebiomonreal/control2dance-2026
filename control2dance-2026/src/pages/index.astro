@@ -1,6 +1,7 @@
 ---
 import Header from '../components/Header';
 import Hero from '../components/Hero.astro';
+import FeaturedRelease from '../components/FeaturedRelease';
 import Filters from '../components/Filters';
 import ProductGrid from '../components/ProductGrid';
 import Toast from '../components/Toast';
@@ -24,6 +25,9 @@ import '../styles/global.css';
         <GlobalLoader client:only="react" />
         <Header client:load />
         <Hero />
+        
+        <!-- Último lanzamiento destacado -->
+        <FeaturedRelease client:visible />
         
         <section class="max-w-screen-2xl mx-auto px-8 pb-32">
             <Filters client:visible />

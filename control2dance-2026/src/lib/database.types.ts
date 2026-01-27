@@ -120,6 +120,12 @@ export interface AudioPreview {
   duration?: number;
 }
 
+export interface MasterFile {
+  path: string;
+  file_name: string;
+  file_size: number;
+}
+
 export type OrderStatus = 'pending' | 'paid' | 'failed' | 'refunded' | 'partially_refunded';
 export type ActivityAction = 'login' | 'logout' | 'purchase' | 'download' | 'password_change' | 'profile_update';
 

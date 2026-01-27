@@ -12,12 +12,14 @@ const JoditEditor = lazy(() => import('jodit-react'));
 interface Product {
   id: string;
   name: string;
+  brand: string | null;
   catalog_number: string;
   cover_image: string | null;
   price: number;
   year: string | null;
   label: string | null;
   genre: string | null;
+  styles: string[] | null;
 }
 
 interface SendResult {
@@ -59,7 +61,8 @@ export default function NewsletterComposer() {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, catalog_number, cover_image, price, year, label, genre, is_active')
+        .select('id, name, brand, catalog_number, cover_image, price, year, label, genre, styles, is_active')
+        .eq('is_active', true)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -67,10 +70,8 @@ export default function NewsletterComposer() {
         throw error;
       }
       
-      // Filtrar productos activos (o todos si is_active no existe)
-      const activeProducts = data?.filter(p => p.is_active !== false) || [];
-      console.log('Productos cargados:', activeProducts.length, 'de', data?.length);
-      setProducts(activeProducts);
+      console.log('[Newsletter] Productos cargados:', data?.length);
+      setProducts(data || []);
     } catch (e) {
       console.error('Error loading products:', e);
     }
@@ -91,11 +92,40 @@ export default function NewsletterComposer() {
     }
   };
 
+  // Función de búsqueda mejorada
+  const matchesSearch = (product: Product, query: string): boolean => {
+    if (!query.trim()) return true;
+    
+    // Normalizar texto (quitar acentos y convertir a minúsculas)
+    const normalize = (text: string) => 
+      text.toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
+        .replace(/[-_]/g, ' '); // Convertir guiones a espacios
+    
+    const normalizedQuery = normalize(query);
+    const searchTerms = normalizedQuery.split(/\s+/).filter(t => t.length > 0);
+    
+    // Campos a buscar - cada campo por separado para mejor matching
+    const fields = [
+      product.name || '',
+      product.brand || '',
+      product.catalog_number || '',
+      product.label || '',
+      product.genre || '',
+      product.year || '',
+      ...(product.styles || [])
+    ];
+    
+    const searchableText = normalize(fields.join(' '));
+    
+    // Al menos un término debe coincidir (OR) - más flexible
+    return searchTerms.some(term => searchableText.includes(term));
+  };
+
   const filteredProducts = products.filter(p => 
     !selectedProducts.find(sp => sp.id === p.id) &&
-    (p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     p.catalog_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     (p.label?.toLowerCase().includes(searchQuery.toLowerCase())))
+    matchesSearch(p, searchQuery)
   );
 
   const addProduct = (product: Product) => {
@@ -513,24 +543,43 @@ export default function NewsletterComposer() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar discos..."
-                  className="w-full pl-10 pr-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-pink-500"
+                  placeholder="Buscar por nombre, catálogo, sello, género o año..."
+                  className="w-full pl-10 pr-10 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-pink-500"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
+              {searchQuery && (
+                <p className="text-xs text-zinc-500 mt-2">
+                  {filteredProducts.length} resultado{filteredProducts.length !== 1 ? 's' : ''} 
+                  {filteredProducts.length > 50 && ' (mostrando primeros 50)'}
+                </p>
+              )}
             </div>
 
-            <div className="max-h-[300px] overflow-y-auto">
+            <div className="max-h-[400px] overflow-y-auto">
               {loadingProducts ? (
                 <div className="p-8 flex items-center justify-center">
                   <Loader2 className="w-6 h-6 text-pink-400 animate-spin" />
                 </div>
               ) : filteredProducts.length === 0 ? (
                 <div className="p-8 text-center text-zinc-500">
-                  {searchQuery ? 'No se encontraron discos' : 'No hay más discos disponibles'}
+                  {searchQuery ? (
+                    <div>
+                      <p>No se encontraron discos para "{searchQuery}"</p>
+                      <p className="text-xs mt-1">Prueba con otros términos</p>
+                    </div>
+                  ) : 'No hay más discos disponibles'}
                 </div>
               ) : (
                 <div className="divide-y divide-zinc-800">
-                  {filteredProducts.slice(0, 20).map(product => (
+                  {filteredProducts.slice(0, 50).map(product => (
                     <button
                       key={product.id}
                       onClick={() => addProduct(product)}
