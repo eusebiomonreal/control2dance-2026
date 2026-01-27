@@ -190,7 +190,6 @@ async function handleCheckoutComplete(session: any) {
   }
 
   // 5. Enviar emails de confirmación
-  const customerEmail = session.customer_email || session.customer_details?.email;
   const siteUrl = process.env.PUBLIC_SITE_URL || 'https://dev.control2dance.es';
   
   // Preparar datos de los items para el email
