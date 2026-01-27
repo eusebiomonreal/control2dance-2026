@@ -3,7 +3,7 @@
  */
 import type { APIRoute } from 'astro';
 
-const DISCOGS_TOKEN = 'TokFzBJmIsRhpiPfhwrlCgUfIbGLLBhmeydUeWmq';
+const DISCOGS_TOKEN = import.meta.env.DISCOGS_TOKEN || process.env.DISCOGS_TOKEN;
 
 export const POST: APIRoute = async ({ request }) => {
   try {

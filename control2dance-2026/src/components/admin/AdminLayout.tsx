@@ -16,7 +16,8 @@ import {
   ShoppingCart,
   Users,
   Shield,
-  Mail
+  Mail,
+  Star
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Header from '../Header';
@@ -24,12 +25,13 @@ import Footer from '../Footer';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
-  currentPage?: 'dashboard' | 'products' | 'orders' | 'customers' | 'roles' | 'newsletter' | 'settings';
+  currentPage?: 'dashboard' | 'products' | 'featured' | 'orders' | 'customers' | 'roles' | 'newsletter' | 'settings';
 }
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
   { id: 'products', label: 'Productos', icon: Package, href: '/admin/products' },
+  { id: 'featured', label: 'Destacados', icon: Star, href: '/admin/featured' },
   { id: 'orders', label: 'Pedidos', icon: ShoppingCart, href: '/admin/orders' },
   { id: 'customers', label: 'Clientes', icon: Users, href: '/admin/customers' },
   { id: 'newsletter', label: 'Newsletter', icon: Mail, href: '/admin/newsletter' },

@@ -24,12 +24,11 @@ import '../styles/global.css';
 	<body class="bg-[#020308] text-white selection:bg-[#ff4d7d]">
         <GlobalLoader client:only="react" />
         <Header client:load />
-        <Hero />
         
         <!-- Último lanzamiento destacado -->
         <FeaturedRelease client:visible />
         
-        <section class="max-w-screen-2xl mx-auto px-8 pb-32">
+        <section id="catalogo" class="max-w-screen-2xl mx-auto px-8 pb-32 scroll-mt-8">
             <Filters client:visible />
             <ProductGrid client:visible />
         </section>

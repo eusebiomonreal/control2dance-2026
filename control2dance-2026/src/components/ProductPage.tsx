@@ -501,16 +501,16 @@ const ProductPage: React.FC<ProductPageProps> = ({ product, prevProduct, nextPro
 
                 {/* Turntable Arm */}
                 <div 
-                  className={`absolute -top-12 -right-4 lg:-right-20 w-52 h-64 z-20 pointer-events-none transition-opacity duration-500 delay-200 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
+                  className={`absolute -top-20 -right-8 lg:-right-12 w-56 h-80 z-20 pointer-events-none transition-opacity duration-500 delay-200 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
                 >
                   <svg 
-                    viewBox="0 0 160 200" 
-                    className={`w-full h-full drop-shadow-2xl transition-transform duration-700 ease-out origin-[130px_30px] ${isPlaying ? 'rotate-[25deg]' : 'rotate-[-10deg]'}`}
+                    viewBox="0 0 160 220" 
+                    className={`w-full h-full drop-shadow-2xl transition-transform duration-700 ease-out origin-[130px_30px] ${isPlaying ? 'rotate-[5deg]' : 'rotate-[-20deg]'}`}
                   >
                     <circle cx="130" cy="30" r="12" fill="#27272a" stroke="#52525b" strokeWidth="3" />
                     <circle cx="130" cy="30" r="5" fill="#a1a1aa" />
-                    <line x1="130" y1="30" x2="85" y2="135" stroke="#d4d4d8" strokeWidth="6" strokeLinecap="round" />
-                    <g transform="translate(76, 130) rotate(25)">
+                    <line x1="130" y1="30" x2="105" y2="185" stroke="#d4d4d8" strokeWidth="6" strokeLinecap="round" />
+                    <g transform="translate(96, 180) rotate(8)">
                       <rect x="0" y="0" width="16" height="24" rx="2" fill="#18181b" />
                       <rect x="2" y="22" width="5" height="6" fill="#ef4444" />
                     </g>

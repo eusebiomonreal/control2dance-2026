@@ -67,24 +67,37 @@ export const productService = {
    * Obtener todos los productos activos
    */
   async getProducts(): Promise<Product[]> {
-    console.log('[ProductService] Fetching products from Supabase...');
-    console.log('[ProductService] URL:', import.meta.env.PUBLIC_SUPABASE_URL);
-
-    const { data, error, status } = await supabase
+    const { data, error } = await supabase
       .from('products')
       .select('*')
       .eq('is_active', true)
       .order('year', { ascending: false });
 
-    console.log('[ProductService] Response status:', status);
-
     if (error) {
       console.error('[ProductService] Error fetching products:', error);
-      console.error('[ProductService] Error details:', JSON.stringify(error, null, 2));
       throw new Error(error.message || 'Error al cargar productos');
     }
 
-    console.log(`[ProductService] Fetched ${data?.length || 0} products`);
+    return (data || []).map(mapDBProductToFrontend);
+  },
+
+  /**
+   * Obtener productos destacados (is_featured = true, ordenados por featured_order)
+   */
+  async getFeaturedProducts(): Promise<Product[]> {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_active', true)
+      .eq('is_featured', true)
+      .order('featured_order', { ascending: true });
+
+    if (error) {
+      console.error('[ProductService] Error fetching featured products:', error);
+      return [];
+    }
+
+    console.log(`[ProductService] Fetched ${data?.length || 0} featured products`);
     return (data || []).map(mapDBProductToFrontend);
   },
 

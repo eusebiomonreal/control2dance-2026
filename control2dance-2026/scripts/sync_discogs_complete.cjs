@@ -13,7 +13,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
-const DISCOGS_TOKEN = 'TokFzBJmIsRhpiPfhwrlCgUfIbGLLBhmeydUeWmq';
+const DISCOGS_TOKEN = process.env.DISCOGS_TOKEN;
 const DELAY_MS = 2500; // Discogs rate limit - aumentado para evitar 429
 
 function sleep(ms) {
