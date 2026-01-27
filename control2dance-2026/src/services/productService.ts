@@ -89,18 +89,35 @@ export const productService = {
   },
 
   /**
-   * Obtener producto por slug
+   * Obtener producto por slug (busca también por catalog_number normalizado)
    */
   async getProductBySlug(slug: string): Promise<Product | null> {
-    const { data, error } = await supabase
+    // Primero intentar buscar por slug exacto
+    let { data, error } = await supabase
       .from('products')
       .select('*')
       .eq('slug', slug)
       .eq('is_active', true)
       .single();
 
+    // Si no se encuentra, buscar por catalog_number normalizado
     if (error || !data) {
-      console.error('Error fetching product by slug:', error);
+      const { data: bySlugLike, error: error2 } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_active', true);
+      
+      if (!error2 && bySlugLike) {
+        // Buscar producto cuyo catalog_number normalizado coincida con el slug
+        data = bySlugLike.find(p => {
+          const normalizedCatalog = p.catalog_number?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+          return normalizedCatalog === slug || p.slug === slug;
+        }) || null;
+      }
+    }
+
+    if (!data) {
+      console.error('Error fetching product by slug:', slug, error);
       return null;
     }
 

@@ -7,58 +7,41 @@ import '../../styles/global.css';
 import { productService } from '../../services/productService';
 import type { Product } from '../../types';
 
-// SSG: Generar páginas estáticas para todos los productos
-export const prerender = true;
-
-export async function getStaticPaths() {
-	const products = await productService.getProducts();
-
-	return products.map((product, index) => {
-		// Usar el slug del producto directamente de la DB
-		const slug = product.slug || product.catalogNumber?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || product.id;
-
-		// Obtener producto anterior y siguiente
-		const prevProduct = index > 0 ? products[index - 1] : null;
-		const nextProduct = index < products.length - 1 ? products[index + 1] : null;
-
-		return {
-			params: { slug },
-			props: { 
-				product,
-				prevProduct: prevProduct ? {
-					slug: prevProduct.slug || prevProduct.catalogNumber?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || prevProduct.id,
-					name: prevProduct.name,
-					image: prevProduct.image
-				} : null,
-				nextProduct: nextProduct ? {
-					slug: nextProduct.slug || nextProduct.catalogNumber?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || nextProduct.id,
-					name: nextProduct.name,
-					image: nextProduct.image
-				} : null
-			}
-		};
-	});
-}
-
-interface Props {
-	product: Product;
-	prevProduct: { slug: string; name: string; image: string } | null;
-	nextProduct: { slug: string; name: string; image: string } | null;
-}
+// SSR: Renderizar dinámicamente para soportar productos nuevos sin rebuild
+export const prerender = false;
 
 const { slug } = Astro.params;
-const { product, prevProduct, nextProduct } = Astro.props as Props;
 
-// Si no hay producto (fallback), intentar cargar dinámicamente
-let finalProduct = product;
-if (!finalProduct && slug) {
-	finalProduct = await productService.getProductBySlug(slug) as Product;
+if (!slug) {
+	return Astro.redirect('/404');
 }
 
-// Si aún no hay producto, redirigir a 404
+// Cargar el producto desde la base de datos
+const finalProduct = await productService.getProductBySlug(slug) as Product;
+
+// Si no hay producto, redirigir a 404
 if (!finalProduct) {
 	return Astro.redirect('/404');
 }
+
+// Cargar todos los productos para navegación prev/next
+const allProducts = await productService.getProducts();
+const currentIndex = allProducts.findIndex(p => p.slug === slug);
+
+const prevProductData = currentIndex > 0 ? allProducts[currentIndex - 1] : null;
+const nextProductData = currentIndex < allProducts.length - 1 ? allProducts[currentIndex + 1] : null;
+
+const prevProduct = prevProductData ? {
+	slug: prevProductData.slug || prevProductData.catalogNumber?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || prevProductData.id,
+	name: prevProductData.name,
+	image: prevProductData.image
+} : null;
+
+const nextProduct = nextProductData ? {
+	slug: nextProductData.slug || nextProductData.catalogNumber?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || nextProductData.id,
+	name: nextProductData.name,
+	image: nextProductData.image
+} : null;
 ---
 
 <html lang="es">
