@@ -4,11 +4,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
-import { Disc, Play, Pause, Volume2, Calendar, Tag, Hash, Music, ShoppingCart, Sparkles, FileText, ChevronLeft, ChevronRight, CheckCircle2, Download, Users, ExternalLink } from 'lucide-react';
+import { Disc, Play, Pause, Volume2, Calendar, Tag, Hash, Music, ShoppingCart, Sparkles, FileText, ChevronLeft, ChevronRight, CheckCircle2, Download, Users, ExternalLink, Pencil } from 'lucide-react';
 import type { Product } from '../types';
 import { PLACEHOLDER_COVER } from '../constants';
 import { cartItems, addToCart } from '../stores/cartStore';
 import { ownedProducts } from '../stores/ownedProductsStore';
+import { isAdmin, checkAdminStatus } from '../stores/adminStore';
 
 interface ProductPageProps {
   product: Product;
@@ -19,6 +20,12 @@ interface ProductPageProps {
 const ProductPage: React.FC<ProductPageProps> = ({ product, prevProduct, nextProduct }) => {
   const $cartItems = useStore(cartItems);
   const $ownedProducts = useStore(ownedProducts);
+  const $isAdmin = useStore(isAdmin);
+  
+  useEffect(() => {
+    checkAdminStatus();
+  }, []);
+
   const isInCart = Boolean($cartItems[product.id]);
   const isOwned = $ownedProducts.has(product.id);
   const orderId = $ownedProducts.get(product.id);
@@ -624,7 +631,16 @@ const ProductPage: React.FC<ProductPageProps> = ({ product, prevProduct, nextPro
         {/* Right Panel - Details */}
         <div className="flex-1 flex flex-col p-6 lg:p-8 bg-gradient-to-b from-[#04050a] to-[#080a14]">
           {/* Header */}
-          <div className="space-y-3 mb-6">
+          <div className="space-y-3 mb-6 relative">
+            {$isAdmin && (
+              <button
+                onClick={() => window.location.href = `/admin/products/${product.id}`}
+                className="absolute top-0 right-0 p-2 bg-white/5 border border-white/10 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                title="Editar producto"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
             <div className="flex items-center gap-3">
               <span className="text-[#ff4d7d] text-[9px] font-black uppercase tracking-[0.4em] bg-[#ff4d7d]/10 px-3 py-1.5 rounded-full border border-[#ff4d7d]/20">
                 Digital Archive
@@ -633,7 +649,7 @@ const ProductPage: React.FC<ProductPageProps> = ({ product, prevProduct, nextPro
                 #{product.catalogNumber}
               </span>
             </div>
-            <h1 className="text-3xl lg:text-4xl font-black uppercase tracking-tight leading-none text-white">
+            <h1 className="text-3xl lg:text-4xl font-black uppercase tracking-tight leading-none text-white pr-10">
               {cleanText(product.name)}
             </h1>
             <p className="text-[#ff4d7d] text-sm font-bold uppercase tracking-wide">{cleanText(product.brand)}</p>

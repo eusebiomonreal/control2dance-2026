@@ -2,7 +2,7 @@
  * FeaturedRelease - Sección destacada con carrusel de productos
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, ShoppingCart, ArrowRight, Disc3, Sparkles, ChevronLeft, ChevronRight, ChevronDown, SkipBack, SkipForward } from 'lucide-react';
 import { productService } from '../services/productService';
 import { addToCart } from '../stores/cartStore';
@@ -18,6 +18,11 @@ export default function FeaturedRelease() {
   const [currentTrack, setCurrentTrack] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Touch/swipe handling
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const isSwiping = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const product = products[currentIndex] || null;
 
@@ -155,6 +160,72 @@ export default function FeaturedRelease() {
     setCurrentIndex((prev) => (prev === products.length - 1 ? 0 : prev + 1));
   };
 
+  // Touch handlers para swipe en móvil
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now()
+    };
+    isSwiping.current = false;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    
+    const touch = e.touches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
+    const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
+    
+    // Si el movimiento horizontal es mayor que el vertical y supera el umbral,
+    // marcamos como swipe para evitar que se active el click
+    if (deltaX > 15 && deltaX > deltaY) {
+      isSwiping.current = true;
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current || products.length <= 1) {
+      touchStartRef.current = null;
+      return;
+    }
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
+    const deltaTime = Date.now() - touchStartRef.current.time;
+    
+    // Umbral mínimo para considerar un swipe: 50px horizontal, menos de 100px vertical
+    // y menos de 300ms para que sea un swipe rápido
+    const minSwipeDistance = 50;
+    const maxSwipeTime = 300;
+    
+    if (Math.abs(deltaX) > minSwipeDistance && deltaY < 100 && deltaTime < maxSwipeTime) {
+      if (deltaX > 0) {
+        goToPrevious();
+      } else {
+        goToNext();
+      }
+    }
+    
+    touchStartRef.current = null;
+    // Reset swipe flag después de un pequeño delay para evitar clicks accidentales
+    setTimeout(() => {
+      isSwiping.current = false;
+    }, 50);
+  }, [products.length]);
+
+  // Prevenir clicks accidentales durante swipe
+  const handleButtonClick = useCallback((e: React.MouseEvent | React.TouchEvent, callback: () => void) => {
+    if (isSwiping.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    callback();
+  }, []);
+
   if (loading) {
     return (
       <section className="max-w-screen-2xl mx-auto px-8 py-16">
@@ -211,9 +282,13 @@ export default function FeaturedRelease() {
         </div>
 
         <div 
-          className="relative group overflow-hidden md:overflow-visible"
+          ref={containerRef}
+          className="relative group overflow-hidden md:overflow-visible touch-pan-y"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           {/* Background con gradiente y blur */}
           
@@ -243,19 +318,21 @@ export default function FeaturedRelease() {
             
             {/* Panel Izquierdo: Vinilo */}
             <div className="w-full md:w-2/5 flex justify-center">
-              <div className="relative w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 lg:w-96 lg:h-96 flex-shrink-0 cursor-pointer" onClick={togglePlay}>
+              <div 
+                className="relative w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 lg:w-96 lg:h-96 flex-shrink-0 cursor-pointer touch-manipulation" 
+                onClick={(e) => handleButtonClick(e, togglePlay)}
+                onTouchEnd={(e) => e.stopPropagation()}
+              >
                 {/* Glow effect */}
                 <div className={`absolute inset-0 rounded-full bg-[#ff4d7d]/20 blur-3xl transition-all duration-500 ${isPlaying ? 'opacity-60 md:scale-110' : 'opacity-20 scale-100'}`} />
 
                 {/* Vinyl disc - se mueve a la derecha al reproducir */}
                 <div
-                  className={`absolute inset-0 rounded-full bg-gradient-to-br from-zinc-900 via-black to-zinc-800 shadow-2xl md:transition-all md:duration-700 md:ease-out ${
-                    isPlaying
-                      ? 'md:translate-x-[30%] lg:translate-x-[40%] md:scale-100 z-20 md:z-0'
-                      : 'translate-x-0 z-0'
+                  className={`absolute inset-0 rounded-full bg-gradient-to-br from-zinc-900 via-black to-zinc-800 shadow-2xl transition-opacity duration-500 ${
+                    isPlaying ? 'opacity-100' : 'opacity-0'
                   }`}
                   style={{
-                    animation: isPlaying && !isMobile ? 'spin 3s linear infinite' : 'none',
+                    animation: isPlaying ? 'spin 3s linear infinite' : 'none',
                   }}
                 >
                   {/* Vinyl grooves */}
@@ -274,8 +351,8 @@ export default function FeaturedRelease() {
                 <div
                   className={`absolute inset-0 rounded-2xl overflow-hidden shadow-2xl transition-all duration-700 ease-out z-10 ${
                     isPlaying
-                      ? 'scale-100'
-                      : 'hover:scale-[1.02] hover:rotate-1'
+                      ? 'opacity-0 scale-95'
+                      : 'opacity-100 scale-100 hover:scale-[1.02] hover:rotate-1'
                   }`}
                 >
                   {product.image ? (
@@ -304,7 +381,7 @@ export default function FeaturedRelease() {
 
                 {/* Turntable Arm - posicionado a la derecha donde sale el vinilo */}
                 <div 
-                  className={`hidden md:block absolute -top-16 right-[-70%] w-56 h-80 z-10 pointer-events-none transition-opacity duration-500 delay-200 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
+                  className={`hidden md:block absolute -top-16 right-[-20%] w-56 h-80 z-10 pointer-events-none transition-opacity duration-500 delay-200 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
                 >
                   <svg 
                     viewBox="0 0 160 220" 
@@ -356,8 +433,9 @@ export default function FeaturedRelease() {
                       {/* Botón anterior */}
                       {totalTracks > 1 && (
                         <button
-                          onClick={(e) => { e.stopPropagation(); skipTrack('prev'); }}
-                          className="w-10 h-10 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center transition-all"
+                          onClick={(e) => handleButtonClick(e, () => skipTrack('prev'))}
+                          onTouchEnd={(e) => e.stopPropagation()}
+                          className="w-10 h-10 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center transition-all touch-manipulation"
                         >
                           <SkipBack className="w-4 h-4" />
                         </button>
@@ -365,8 +443,9 @@ export default function FeaturedRelease() {
                       
                       {/* Botón play/pause */}
                       <button
-                        onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                        onClick={(e) => handleButtonClick(e, togglePlay)}
+                        onTouchEnd={(e) => e.stopPropagation()}
+                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all touch-manipulation ${
                           isPlaying 
                             ? 'bg-[#ff4d7d] text-white' 
                             : 'bg-white/10 text-white hover:bg-white/20'
@@ -382,8 +461,9 @@ export default function FeaturedRelease() {
                       {/* Botón siguiente */}
                       {totalTracks > 1 && (
                         <button
-                          onClick={(e) => { e.stopPropagation(); skipTrack('next'); }}
-                          className="w-10 h-10 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center transition-all"
+                          onClick={(e) => handleButtonClick(e, () => skipTrack('next'))}
+                          onTouchEnd={(e) => e.stopPropagation()}
+                          className="w-10 h-10 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center transition-all touch-manipulation"
                         >
                           <SkipForward className="w-4 h-4" />
                         </button>
@@ -433,8 +513,9 @@ export default function FeaturedRelease() {
               {/* Acciones */}
               <div className="flex flex-col gap-3 md:gap-4 w-full md:w-auto md:flex-row justify-center md:justify-start pt-4 md:pt-6">
                 <button
-                  onClick={handleAddToCart}
-                  className="flex items-center justify-center gap-3 px-8 py-4 bg-[#ff4d7d] hover:bg-[#ff3366] text-white font-bold uppercase text-base tracking-wider rounded-xl transition-all hover:scale-105 shadow-lg shadow-[#ff4d7d]/25"
+                  onClick={(e) => handleButtonClick(e, handleAddToCart)}
+                  onTouchEnd={(e) => e.stopPropagation()}
+                  className="flex items-center justify-center gap-3 px-8 py-4 bg-[#ff4d7d] hover:bg-[#ff3366] text-white font-bold uppercase text-base tracking-wider rounded-xl transition-all hover:scale-105 shadow-lg shadow-[#ff4d7d]/25 touch-manipulation"
                 >
                   <ShoppingCart className="w-5 h-5" />
                   Añadir al carrito
@@ -443,7 +524,8 @@ export default function FeaturedRelease() {
                 
                 <a
                   href={`/catalogo/${product.slug}`}
-                  className="flex items-center justify-center gap-3 px-8 py-4 bg-white/5 hover:bg-white/10 text-white font-bold uppercase text-base tracking-wider rounded-xl transition-all border border-white/10 hover:border-white/20"
+                  onTouchEnd={(e) => e.stopPropagation()}
+                  className="flex items-center justify-center gap-3 px-8 py-4 bg-white/5 hover:bg-white/10 text-white font-bold uppercase text-base tracking-wider rounded-xl transition-all border border-white/10 hover:border-white/20 touch-manipulation"
                 >
                   Ver detalles
                   <ArrowRight className="w-5 h-5" />

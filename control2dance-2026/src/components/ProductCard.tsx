@@ -1,11 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
-import { PlusCircle, CheckCircle2, Disc, ShoppingCart, Download } from 'lucide-react';
+import { PlusCircle, CheckCircle2, Disc, ShoppingCart, Download, Pencil } from 'lucide-react';
 import type { Product } from '../types';
 import { PLACEHOLDER_COVER } from '../constants';
 import { cartItems } from '../stores/cartStore';
 import { ownedProducts } from '../stores/ownedProductsStore';
+import { isAdmin, checkAdminStatus } from '../stores/adminStore';
 
 interface ProductCardProps {
   product: Product;
@@ -15,6 +16,12 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
   const $cartItems = useStore(cartItems);
   const $ownedProducts = useStore(ownedProducts);
+  const $isAdmin = useStore(isAdmin);
+
+  useEffect(() => {
+    checkAdminStatus();
+  }, []);
+
   const isInCart = Boolean($cartItems[product.id]);
   const isOwned = $ownedProducts.has(product.id);
   const orderId = $ownedProducts.get(product.id);
@@ -45,6 +52,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
     setTimeout(() => setIsAdded(false), 2000);
   };
 
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    window.location.href = `/admin/products/${product.id}`;
+  };
+
   const handleError = () => {
     if (!hasError) {
       // Si falla la imagen del proxy, intentamos cargar la maestra directamente como último recurso
@@ -65,6 +78,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
       href={productUrl}
       className="group relative bg-[#090b1a] border border-white/5 shadow-2xl rounded-2xl overflow-hidden cursor-pointer transition-all hover:border-[#ff4d7d]/40 hover:-translate-y-2 block"
     >
+      {$isAdmin && (
+        <button
+          onClick={handleEdit}
+          className="absolute top-2 right-2 z-20 p-2 bg-black/50 rounded-full text-white hover:bg-[#ff4d7d] transition-colors"
+          aria-label="Editar producto"
+        >
+          <Pencil className="w-4 h-4" />
+        </button>
+      )}
       <div className="relative aspect-square overflow-hidden bg-black flex items-center justify-center">
         {loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#05060b]">
