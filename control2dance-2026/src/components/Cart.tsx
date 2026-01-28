@@ -10,6 +10,7 @@ export default function Cart() {
   const isAuthenticated = useStore($isAuthenticated);
 
   const [email, setEmail] = useState('');
+  const [newsletterAccepted, setNewsletterAccepted] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +55,15 @@ export default function Cart() {
           userId: user?.id
         })
       });
+
+      // Handle newsletter opt-in (non-blocking)
+      if (newsletterAccepted) {
+        fetch('/api/auth/newsletter-opt-in', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email }) // name is optional/derived
+        }).catch(err => console.error('Error sending newsletter opt-in:', err));
+      }
 
       const data = await response.json();
 
@@ -202,6 +212,22 @@ export default function Cart() {
               Recibirás los enlaces de descarga en este email
             </p>
           </div>
+
+          {/* Newsletter Checkbox */}
+          {!isAuthenticated && (
+            <div className="mb-6 flex items-start gap-2">
+              <input
+                type="checkbox"
+                id="newsletter-cart"
+                checked={newsletterAccepted}
+                onChange={(e) => setNewsletterAccepted(e.target.checked)}
+                className="mt-1 w-4 h-4 rounded bg-zinc-800 border-zinc-700 text-[#ff4d7d] focus:ring-[#ff4d7d]"
+              />
+              <label htmlFor="newsletter-cart" className="text-xs text-zinc-400">
+                Quiero recibir novedades y lanzamientos exclusivos en mi email
+              </label>
+            </div>
+          )}
 
           {/* Pay button */}
           <button

@@ -3,11 +3,12 @@
  */
 
 import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
-import { Mail, Search, X, Send, ChevronLeft, ChevronRight, Eye, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Mail, Search, X, Send, ChevronLeft, ChevronRight, Eye, Loader2, CheckCircle, AlertTriangle, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 // Importación dinámica para evitar errores de SSR
 const JoditEditor = lazy(() => import('jodit-react'));
+const SubscribersList = lazy(() => import('./SubscribersList'));
 
 interface Product {
   id: string;
@@ -30,6 +31,9 @@ interface SendResult {
 }
 
 export default function NewsletterComposer() {
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'compose' | 'subscribers'>('compose');
+
   // Products state
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
@@ -40,7 +44,7 @@ export default function NewsletterComposer() {
   const [subject, setSubject] = useState('🎵 Nuevos discos en Control2Dance');
   const [headerText, setHeaderText] = useState('¡Hola! Echa un vistazo a los últimos discos que hemos añadido al archivo digital. Listos para sonar en tu próxima sesión.');
   const [footerText, setFooterText] = useState('Gracias por formar parte de la comunidad. ¡Nos vemos en la pista!');
-  
+
   // Recipients
   const [recipientType, setRecipientType] = useState<'all' | 'test'>('test');
   const [testEmail, setTestEmail] = useState('');
@@ -69,7 +73,7 @@ export default function NewsletterComposer() {
         console.error('Error loading products:', error);
         throw error;
       }
-      
+
       console.log('[Newsletter] Productos cargados:', data?.length);
       setProducts(data || []);
     } catch (e) {
@@ -85,7 +89,7 @@ export default function NewsletterComposer() {
         .from('orders')
         .select('customer_email', { count: 'exact', head: true })
         .eq('status', 'paid');
-      
+
       setTotalSubscribers(count || 0);
     } catch (e) {
       console.error('Error loading subscriber count:', e);
@@ -95,17 +99,17 @@ export default function NewsletterComposer() {
   // Función de búsqueda mejorada
   const matchesSearch = (product: Product, query: string): boolean => {
     if (!query.trim()) return true;
-    
+
     // Normalizar texto (quitar acentos y convertir a minúsculas)
-    const normalize = (text: string) => 
+    const normalize = (text: string) =>
       text.toLowerCase()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
         .replace(/[-_]/g, ' '); // Convertir guiones a espacios
-    
+
     const normalizedQuery = normalize(query);
     const searchTerms = normalizedQuery.split(/\s+/).filter(t => t.length > 0);
-    
+
     // Campos a buscar - cada campo por separado para mejor matching
     const fields = [
       product.name || '',
@@ -116,14 +120,14 @@ export default function NewsletterComposer() {
       product.year || '',
       ...(product.styles || [])
     ];
-    
+
     const searchableText = normalize(fields.join(' '));
-    
+
     // Al menos un término debe coincidir (OR) - más flexible
     return searchTerms.some(term => searchableText.includes(term));
   };
 
-  const filteredProducts = products.filter(p => 
+  const filteredProducts = products.filter(p =>
     !selectedProducts.find(sp => sp.id === p.id) &&
     matchesSearch(p, searchQuery)
   );
@@ -165,7 +169,7 @@ export default function NewsletterComposer() {
       return;
     }
 
-    const confirmMessage = recipientType === 'all' 
+    const confirmMessage = recipientType === 'all'
       ? `¿Enviar newsletter a ${totalSubscribers} suscriptores?`
       : `¿Enviar email de prueba a ${testEmail}?`;
 
@@ -189,7 +193,7 @@ export default function NewsletterComposer() {
       });
 
       const data = await res.json();
-      
+
       if (!res.ok) {
         throw new Error(data.error || 'Error al enviar');
       }
@@ -306,305 +310,336 @@ export default function NewsletterComposer() {
         <p className="text-zinc-400">Envía emails con las novedades del catálogo</p>
       </div>
 
-      {/* Result message */}
-      {result && (
-        <div className={`p-4 rounded-xl flex items-start gap-3 ${
-          result.success ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-red-500/10 border border-red-500/20'
-        }`}>
-          {result.success ? (
-            <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-          ) : (
-            <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-          )}
-          <div>
-            <p className={result.success ? 'text-emerald-300' : 'text-red-300'}>
-              {result.success 
-                ? `Newsletter enviado correctamente a ${result.sent} destinatarios`
-                : `Error al enviar: ${result.errors?.join(', ')}`
-              }
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Tabs */}
+      <div className="flex items-center gap-4 border-b border-zinc-800">
+        <button
+          onClick={() => setActiveTab('compose')}
+          className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'compose'
+              ? 'border-pink-500 text-white'
+              : 'border-transparent text-zinc-400 hover:text-white'
+            }`}
+        >
+          <Mail className="w-4 h-4" />
+          Redactar
+        </button>
+        <button
+          onClick={() => setActiveTab('subscribers')}
+          className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'subscribers'
+              ? 'border-pink-500 text-white'
+              : 'border-transparent text-zinc-400 hover:text-white'
+            }`}
+        >
+          <Users className="w-4 h-4" />
+          Suscriptores
+        </button>
+      </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Left column - Email config */}
-        <div className="space-y-6">
-          {/* Email details */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-white">Configuración del email</h2>
-            
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">Asunto *</label>
-              <input
-                type="text"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="Ej: 🎵 Nuevos vinilos esta semana"
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-pink-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">Texto de cabecera (opcional)</label>
-              <div className="jodit-dark rounded-lg overflow-hidden">
-                <Suspense fallback={<div className="h-48 bg-zinc-800 animate-pulse rounded-lg" />}>
-                  <JoditEditor
-                    value={headerText}
-                    config={{
-                      readonly: false,
-                      theme: 'dark',
-                      height: 200,
-                      placeholder: '¡Hola! Mira los últimos vinilos que hemos añadido...',
-                      buttons: ['bold', 'italic', 'underline', 'strikethrough', '|', 'ul', 'ol', '|', 'font', 'fontsize', 'brush', '|', 'link', 'image', '|', 'align', '|', 'undo', 'redo', '|', 'eraser', 'source'],
-                      buttonsMD: ['bold', 'italic', 'underline', '|', 'ul', 'ol', '|', 'brush', 'link', '|', 'source'],
-                      buttonsSM: ['bold', 'italic', '|', 'brush', 'link'],
-                      toolbarAdaptive: true,
-                      showCharsCounter: false,
-                      showWordsCounter: false,
-                      showXPathInStatusbar: false,
-                      askBeforePasteHTML: false,
-                      askBeforePasteFromWord: false,
-                      disablePlugins: ['speech-recognize', 'ai-assistant'],
-                    }}
-                    onBlur={(newContent) => setHeaderText(newContent)}
-                  />
-                </Suspense>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">Texto de pie (opcional)</label>
-              <div className="jodit-dark rounded-lg overflow-hidden">
-                <Suspense fallback={<div className="h-36 bg-zinc-800 animate-pulse rounded-lg" />}>
-                  <JoditEditor
-                    value={footerText}
-                    config={{
-                      readonly: false,
-                      theme: 'dark',
-                      height: 150,
-                      placeholder: '¡Gracias por ser parte de la comunidad!',
-                      buttons: ['bold', 'italic', 'underline', '|', 'brush', 'link', '|', 'eraser', 'source'],
-                      toolbarAdaptive: true,
-                      showCharsCounter: false,
-                      showWordsCounter: false,
-                      showXPathInStatusbar: false,
-                      askBeforePasteHTML: false,
-                      askBeforePasteFromWord: false,
-                      disablePlugins: ['speech-recognize', 'ai-assistant'],
-                    }}
-                    onBlur={(newContent) => setFooterText(newContent)}
-                  />
-                </Suspense>
-              </div>
-            </div>
-          </div>
-
-          {/* Recipients */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-white">Destinatarios</h2>
-            
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="recipientType"
-                  checked={recipientType === 'test'}
-                  onChange={() => setRecipientType('test')}
-                  className="w-4 h-4 text-pink-500 bg-zinc-800 border-zinc-600 focus:ring-pink-500"
-                />
-                <span className="text-white">Email de prueba</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="recipientType"
-                  checked={recipientType === 'all'}
-                  onChange={() => setRecipientType('all')}
-                  className="w-4 h-4 text-pink-500 bg-zinc-800 border-zinc-600 focus:ring-pink-500"
-                />
-                <span className="text-white">Todos los clientes ({totalSubscribers})</span>
-              </label>
-            </div>
-
-            {recipientType === 'test' && (
-              <input
-                type="email"
-                value={testEmail}
-                onChange={(e) => setTestEmail(e.target.value)}
-                placeholder="tu@email.com"
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-pink-500"
-              />
-            )}
-
-            {recipientType === 'all' && (
-              <p className="text-sm text-amber-400 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" />
-                Se enviará a todos los clientes que han realizado una compra
-              </p>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-4">
-            <button
-              onClick={() => setShowPreview(true)}
-              disabled={selectedProducts.length === 0}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-            >
-              <Eye className="w-5 h-5" />
-              Vista previa
-            </button>
-            <button
-              onClick={handleSend}
-              disabled={sending || selectedProducts.length === 0}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-pink-600 hover:bg-pink-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-semibold"
-            >
-              {sending ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Enviando...
-                </>
+      {activeTab === 'subscribers' ? (
+        <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="w-8 h-8 text-pink-400 animate-spin" /></div>}>
+          <SubscribersList />
+        </Suspense>
+      ) : (
+        <>
+          {/* Result message */}
+          {result && (
+            <div className={`p-4 rounded-xl flex items-start gap-3 ${result.success ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-red-500/10 border border-red-500/20'
+              }`}>
+              {result.success ? (
+                <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
               ) : (
-                <>
-                  <Send className="w-5 h-5" />
-                  Enviar
-                </>
+                <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
               )}
-            </button>
-          </div>
-        </div>
+              <div>
+                <p className={result.success ? 'text-emerald-300' : 'text-red-300'}>
+                  {result.success
+                    ? `Newsletter enviado correctamente a ${result.sent} destinatarios`
+                    : `Error al enviar: ${result.errors?.join(', ')}`
+                  }
+                </p>
+              </div>
+            </div>
+          )}
 
-        {/* Right column - Products */}
-        <div className="space-y-6">
-          {/* Selected products */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">
-                Discos seleccionados ({selectedProducts.length})
-              </h2>
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Left column - Email config */}
+            <div className="space-y-6">
+              {/* Email details */}
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
+                <h2 className="text-lg font-semibold text-white">Configuración del email</h2>
+
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-2">Asunto *</label>
+                  <input
+                    type="text"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    placeholder="Ej: 🎵 Nuevos vinilos esta semana"
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-pink-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-2">Texto de cabecera (opcional)</label>
+                  <div className="jodit-dark rounded-lg overflow-hidden">
+                    <Suspense fallback={<div className="h-48 bg-zinc-800 animate-pulse rounded-lg" />}>
+                      <JoditEditor
+                        value={headerText}
+                        config={{
+                          readonly: false,
+                          theme: 'dark',
+                          height: 200,
+                          placeholder: '¡Hola! Mira los últimos vinilos que hemos añadido...',
+                          buttons: ['bold', 'italic', 'underline', 'strikethrough', '|', 'ul', 'ol', '|', 'font', 'fontsize', 'brush', '|', 'link', 'image', '|', 'align', '|', 'undo', 'redo', '|', 'eraser', 'source'],
+                          buttonsMD: ['bold', 'italic', 'underline', '|', 'ul', 'ol', '|', 'brush', 'link', '|', 'source'],
+                          buttonsSM: ['bold', 'italic', '|', 'brush', 'link'],
+                          toolbarAdaptive: true,
+                          showCharsCounter: false,
+                          showWordsCounter: false,
+                          showXPathInStatusbar: false,
+                          askBeforePasteHTML: false,
+                          askBeforePasteFromWord: false,
+                          disablePlugins: ['speech-recognize', 'ai-assistant'],
+                        }}
+                        onBlur={(newContent) => setHeaderText(newContent)}
+                      />
+                    </Suspense>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-2">Texto de pie (opcional)</label>
+                  <div className="jodit-dark rounded-lg overflow-hidden">
+                    <Suspense fallback={<div className="h-36 bg-zinc-800 animate-pulse rounded-lg" />}>
+                      <JoditEditor
+                        value={footerText}
+                        config={{
+                          readonly: false,
+                          theme: 'dark',
+                          height: 150,
+                          placeholder: '¡Gracias por ser parte de la comunidad!',
+                          buttons: ['bold', 'italic', 'underline', '|', 'brush', 'link', '|', 'eraser', 'source'],
+                          toolbarAdaptive: true,
+                          showCharsCounter: false,
+                          showWordsCounter: false,
+                          showXPathInStatusbar: false,
+                          askBeforePasteHTML: false,
+                          askBeforePasteFromWord: false,
+                          disablePlugins: ['speech-recognize', 'ai-assistant'],
+                        }}
+                        onBlur={(newContent) => setFooterText(newContent)}
+                      />
+                    </Suspense>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recipients */}
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
+                <h2 className="text-lg font-semibold text-white">Destinatarios</h2>
+
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="recipientType"
+                      checked={recipientType === 'test'}
+                      onChange={() => setRecipientType('test')}
+                      className="w-4 h-4 text-pink-500 bg-zinc-800 border-zinc-600 focus:ring-pink-500"
+                    />
+                    <span className="text-white">Email de prueba</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="recipientType"
+                      checked={recipientType === 'all'}
+                      onChange={() => setRecipientType('all')}
+                      className="w-4 h-4 text-pink-500 bg-zinc-800 border-zinc-600 focus:ring-pink-500"
+                    />
+                    <span className="text-white">Todos los clientes ({totalSubscribers})</span>
+                  </label>
+                </div>
+
+                {recipientType === 'test' && (
+                  <input
+                    type="email"
+                    value={testEmail}
+                    onChange={(e) => setTestEmail(e.target.value)}
+                    placeholder="tu@email.com"
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-pink-500"
+                  />
+                )}
+
+                {recipientType === 'all' && (
+                  <p className="text-sm text-amber-400 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    Se enviará a todos los clientes que han realizado una compra
+                  </p>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setShowPreview(true)}
+                  disabled={selectedProducts.length === 0}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                >
+                  <Eye className="w-5 h-5" />
+                  Vista previa
+                </button>
+                <button
+                  onClick={handleSend}
+                  disabled={sending || selectedProducts.length === 0}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-pink-600 hover:bg-pink-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-semibold"
+                >
+                  {sending ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5" />
+                      Enviar
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
-            <div className="max-h-[300px] overflow-y-auto">
-              {selectedProducts.length === 0 ? (
-                <div className="p-8 text-center text-zinc-500">
-                  Selecciona discos del catálogo
+            {/* Right column - Products */}
+            <div className="space-y-6">
+              {/* Selected products */}
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-white">
+                    Discos seleccionados ({selectedProducts.length})
+                  </h2>
                 </div>
-              ) : (
-                <div className="divide-y divide-zinc-800">
-                  {selectedProducts.map((product, index) => (
-                    <div key={product.id} className="flex items-center gap-3 p-3 hover:bg-zinc-800/50">
-                      <div className="flex flex-col gap-1">
-                        <button
-                          onClick={() => moveProduct(index, 'up')}
-                          disabled={index === 0}
-                          className="p-1 text-zinc-500 hover:text-white disabled:opacity-30"
-                        >
-                          <ChevronLeft className="w-4 h-4 rotate-90" />
-                        </button>
-                        <button
-                          onClick={() => moveProduct(index, 'down')}
-                          disabled={index === selectedProducts.length - 1}
-                          className="p-1 text-zinc-500 hover:text-white disabled:opacity-30"
-                        >
-                          <ChevronRight className="w-4 h-4 rotate-90" />
-                        </button>
-                      </div>
-                      <div className="w-12 h-12 bg-zinc-800 rounded-lg overflow-hidden flex-shrink-0">
-                        {product.cover_image ? (
-                          <img src={product.cover_image} alt={product.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-zinc-600">🎵</div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-white truncate">{product.name}</p>
-                        <p className="text-sm text-zinc-500">{product.catalog_number}</p>
-                      </div>
+
+                <div className="max-h-[300px] overflow-y-auto">
+                  {selectedProducts.length === 0 ? (
+                    <div className="p-8 text-center text-zinc-500">
+                      Selecciona discos del catálogo
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-zinc-800">
+                      {selectedProducts.map((product, index) => (
+                        <div key={product.id} className="flex items-center gap-3 p-3 hover:bg-zinc-800/50">
+                          <div className="flex flex-col gap-1">
+                            <button
+                              onClick={() => moveProduct(index, 'up')}
+                              disabled={index === 0}
+                              className="p-1 text-zinc-500 hover:text-white disabled:opacity-30"
+                            >
+                              <ChevronLeft className="w-4 h-4 rotate-90" />
+                            </button>
+                            <button
+                              onClick={() => moveProduct(index, 'down')}
+                              disabled={index === selectedProducts.length - 1}
+                              className="p-1 text-zinc-500 hover:text-white disabled:opacity-30"
+                            >
+                              <ChevronRight className="w-4 h-4 rotate-90" />
+                            </button>
+                          </div>
+                          <div className="w-12 h-12 bg-zinc-800 rounded-lg overflow-hidden flex-shrink-0">
+                            {product.cover_image ? (
+                              <img src={product.cover_image} alt={product.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-zinc-600">🎵</div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-white truncate">{product.name}</p>
+                            <p className="text-sm text-zinc-500">{product.catalog_number}</p>
+                          </div>
+                          <button
+                            onClick={() => removeProduct(product.id)}
+                            className="p-2 text-zinc-500 hover:text-red-400 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Product search */}
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                <div className="p-4 border-b border-zinc-800">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Buscar por nombre, catálogo, sello, género o año..."
+                      className="w-full pl-10 pr-10 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-pink-500"
+                    />
+                    {searchQuery && (
                       <button
-                        onClick={() => removeProduct(product.id)}
-                        className="p-2 text-zinc-500 hover:text-red-400 transition-colors"
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
                       >
                         <X className="w-4 h-4" />
                       </button>
-                    </div>
-                  ))}
+                    )}
+                  </div>
+                  {searchQuery && (
+                    <p className="text-xs text-zinc-500 mt-2">
+                      {filteredProducts.length} resultado{filteredProducts.length !== 1 ? 's' : ''}
+                      {filteredProducts.length > 50 && ' (mostrando primeros 50)'}
+                    </p>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* Product search */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="p-4 border-b border-zinc-800">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar por nombre, catálogo, sello, género o año..."
-                  className="w-full pl-10 pr-10 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-pink-500"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
+                <div className="max-h-[400px] overflow-y-auto">
+                  {loadingProducts ? (
+                    <div className="p-8 flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 text-pink-400 animate-spin" />
+                    </div>
+                  ) : filteredProducts.length === 0 ? (
+                    <div className="p-8 text-center text-zinc-500">
+                      {searchQuery ? (
+                        <div>
+                          <p>No se encontraron discos para "{searchQuery}"</p>
+                          <p className="text-xs mt-1">Prueba con otros términos</p>
+                        </div>
+                      ) : 'No hay más discos disponibles'}
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-zinc-800">
+                      {filteredProducts.slice(0, 50).map(product => (
+                        <button
+                          key={product.id}
+                          onClick={() => addProduct(product)}
+                          className="w-full flex items-center gap-3 p-3 hover:bg-zinc-800/50 transition-colors text-left"
+                        >
+                          <div className="w-12 h-12 bg-zinc-800 rounded-lg overflow-hidden flex-shrink-0">
+                            {product.cover_image ? (
+                              <img src={product.cover_image} alt={product.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-zinc-600">🎵</div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-white truncate">{product.name}</p>
+                            <p className="text-sm text-zinc-500">{product.catalog_number}</p>
+                          </div>
+                          <span className="text-pink-400 font-medium">{formatPrice(product.price)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-              {searchQuery && (
-                <p className="text-xs text-zinc-500 mt-2">
-                  {filteredProducts.length} resultado{filteredProducts.length !== 1 ? 's' : ''} 
-                  {filteredProducts.length > 50 && ' (mostrando primeros 50)'}
-                </p>
-              )}
-            </div>
-
-            <div className="max-h-[400px] overflow-y-auto">
-              {loadingProducts ? (
-                <div className="p-8 flex items-center justify-center">
-                  <Loader2 className="w-6 h-6 text-pink-400 animate-spin" />
-                </div>
-              ) : filteredProducts.length === 0 ? (
-                <div className="p-8 text-center text-zinc-500">
-                  {searchQuery ? (
-                    <div>
-                      <p>No se encontraron discos para "{searchQuery}"</p>
-                      <p className="text-xs mt-1">Prueba con otros términos</p>
-                    </div>
-                  ) : 'No hay más discos disponibles'}
-                </div>
-              ) : (
-                <div className="divide-y divide-zinc-800">
-                  {filteredProducts.slice(0, 50).map(product => (
-                    <button
-                      key={product.id}
-                      onClick={() => addProduct(product)}
-                      className="w-full flex items-center gap-3 p-3 hover:bg-zinc-800/50 transition-colors text-left"
-                    >
-                      <div className="w-12 h-12 bg-zinc-800 rounded-lg overflow-hidden flex-shrink-0">
-                        {product.cover_image ? (
-                          <img src={product.cover_image} alt={product.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-zinc-600">🎵</div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-white truncate">{product.name}</p>
-                        <p className="text-sm text-zinc-500">{product.catalog_number}</p>
-                      </div>
-                      <span className="text-pink-400 font-medium">{formatPrice(product.price)}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* Preview Modal */}
       {showPreview && (

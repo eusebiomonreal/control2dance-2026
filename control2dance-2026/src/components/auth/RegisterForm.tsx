@@ -8,6 +8,7 @@ export default function RegisterForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [newsletterAccepted, setNewsletterAccepted] = useState(true);
   const [localError, setLocalError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const loading = useStore($authLoading);
@@ -31,6 +32,14 @@ export default function RegisterForm() {
 
     const result = await register(email, password, name);
     if (result.success) {
+      if (newsletterAccepted) {
+        // Notificar aceptación de newsletter (no bloqueante)
+        fetch('/api/auth/newsletter-opt-in', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, name })
+        }).catch(err => console.error('Error enviando opt-in:', err));
+      }
       setSuccess(true);
     }
   };
@@ -145,6 +154,19 @@ export default function RegisterForm() {
                 className="w-full pl-11 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               />
             </div>
+          </div>
+
+          <div className="flex items-start gap-2">
+            <input
+              type="checkbox"
+              id="newsletter"
+              checked={newsletterAccepted}
+              onChange={(e) => setNewsletterAccepted(e.target.checked)}
+              className="mt-1 w-4 h-4 rounded bg-zinc-800 border-zinc-700 text-indigo-500 focus:ring-indigo-500"
+            />
+            <label htmlFor="newsletter" className="text-sm text-zinc-400">
+              Quiero recibir novedades y lanzamientos exclusivos en mi email
+            </label>
           </div>
 
           <div className="flex items-start gap-2">

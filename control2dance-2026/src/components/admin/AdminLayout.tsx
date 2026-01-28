@@ -113,7 +113,7 @@ export default function AdminLayout({ children, currentPage = 'dashboard' }: Adm
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col">
       <Header showSearch={false} />
-      
+
       <div className="flex-1 flex pt-[72px] md:pt-[88px]">
         {/* Sidebar - Desktop */}
         <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:top-[88px] lg:bottom-0 bg-zinc-900 border-r border-zinc-800 z-30">
@@ -134,11 +134,10 @@ export default function AdminLayout({ children, currentPage = 'dashboard' }: Adm
                 <a
                   key={item.id}
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                    isActive
-                      ? 'bg-[#ff4d7d] text-white shadow-lg shadow-[#ff4d7d]/20'
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive
+                    ? 'bg-[#ff4d7d] text-white shadow-lg shadow-[#ff4d7d]/20'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="font-medium">{item.label}</span>
@@ -200,9 +199,8 @@ export default function AdminLayout({ children, currentPage = 'dashboard' }: Adm
 
       {/* Mobile sidebar */}
       <aside
-        className={`lg:hidden fixed inset-y-0 left-0 z-[150] w-64 bg-zinc-900 transform transition-transform ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`lg:hidden fixed inset-y-0 left-0 z-[150] w-64 bg-zinc-900 transform transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="h-16 flex items-center px-6 border-b border-zinc-800">
           <span className="text-xl font-bold text-white">C2D Admin</span>
@@ -216,11 +214,10 @@ export default function AdminLayout({ children, currentPage = 'dashboard' }: Adm
               <a
                 key={item.id}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-                }`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                  }`}
               >
                 <Icon className="w-5 h-5" />
                 {item.label}

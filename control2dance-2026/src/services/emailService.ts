@@ -219,7 +219,7 @@ function generateAdminEmailHtml(data: OrderEmailData): string {
     </tr>
   `).join('');
 
-  const stripePaymentUrl = data.stripePaymentIntent 
+  const stripePaymentUrl = data.stripePaymentIntent
     ? `https://dashboard.stripe.com/payments/${data.stripePaymentIntent}`
     : `https://dashboard.stripe.com/checkout/sessions/${data.stripeSessionId}`;
 
@@ -394,6 +394,55 @@ export async function sendAdminOrderEmail(data: OrderEmailData): Promise<boolean
     return true;
   } catch (e) {
     console.error('Error sending admin email:', e);
+    return false;
+  }
+}
+
+// ... existing code ...
+
+/**
+ * Notificar al admin sobre aceptación de términos de newsletter
+ */
+export async function sendNewsletterAcceptanceNotification(userData: { name: string; email: string }): Promise<boolean> {
+  if (!resendApiKey) {
+    console.error('RESEND_API_KEY not configured');
+    return false;
+  }
+
+  try {
+    const resend = new Resend(resendApiKey);
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Nuevo suscriptor</title>
+</head>
+<body style="font-family: sans-serif; padding: 20px;">
+  <h2>📰 Nuevo suscriptor a la Newsletter</h2>
+  <div style="background: #f4f4f5; padding: 20px; border-radius: 8px;">
+    <p><strong>Usuario:</strong> ${userData.name}</p>
+    <p><strong>Email:</strong> ${userData.email}</p>
+    <p><strong>Fecha:</strong> ${new Date().toLocaleString('es-ES')}</p>
+    <p style="margin-top: 20px; color: #10b981; font-weight: bold;">
+      ✅ Ha aceptado los términos y condiciones de la newsletter.
+    </p>
+  </div>
+</body>
+</html>
+    `;
+
+    await resend.emails.send({
+      from: 'Control2Dance System <noreply@control2dance.es>',
+      to: adminEmail,
+      subject: `📰 Nuevo suscriptor Newsletter: ${userData.name}`,
+      html
+    });
+
+    return true;
+  } catch (e) {
+    console.error('Error sending newsletter notification:', e);
     return false;
   }
 }
