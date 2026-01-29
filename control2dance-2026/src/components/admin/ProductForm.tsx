@@ -147,7 +147,7 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
     e.preventDefault();
     e.stopPropagation();
     setDragOverCover(false);
-    
+
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       const file = files[0];
@@ -176,11 +176,11 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
     e.preventDefault();
     e.stopPropagation();
     setDragOverAudio(false);
-    
-    const files = Array.from(e.dataTransfer.files).filter(f => 
+
+    const files = Array.from(e.dataTransfer.files).filter(f =>
       f.type.startsWith('audio/') || f.name.endsWith('.mp3') || f.name.endsWith('.wav')
     );
-    
+
     if (files.length > 0) {
       await processAudioUpload(files);
     } else {
@@ -253,10 +253,10 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
     e.preventDefault();
     e.stopPropagation();
     setDragOverMaster(false);
-    
+
     const files = Array.from(e.dataTransfer.files);
     const validExtensions = ['.wav', '.zip', '.rar', '.flac'];
-    
+
     for (const file of files) {
       const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
       if (validExtensions.includes(ext)) {
@@ -299,7 +299,7 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
   const handleMasterUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    
+
     for (const file of Array.from(files)) {
       await processMasterUpload(file);
     }
@@ -358,8 +358,28 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
         genre: prev.genre || data.genre || '',
         styles: prev.styles.length > 0 ? prev.styles : data.styles || [],
         country: prev.country || data.country || '',
-        format: prev.format || data.format || ''
+        format: prev.format || data.format || '',
+        // Importar media (solo si está vacío)
+        cover_image: prev.cover_image || data.cover_image || '',
+        // Audio previews: Mantener los que hay. Si no hay, usar los de Discogs (que ahora vendrán vacíos si no son videos)
+        audio_previews: prev.audio_previews.length > 0
+          ? prev.audio_previews
+          : (data.videos?.map((v: any) => ({
+            url: v.url,
+            track_name: v.title
+          })) || [])
       }));
+
+      // 2. Revisar si hay audios legacy (control2dance.es) y migrarlos (Sideload)
+      // Usamos prev.audio_previews porque es lo que acabamos de "mantener" en setFormData (aunque setFormData es async, aquí usamos el estado 'prev' conceptualmente, pero técnicamente necesitamos acceder al valor actualizado o al previo)
+      // Accedemos a formData.audio_previews? No, porque setNameData no se ha ejecutado aun.
+      // Debemos mirar 'prev.audio_previews' del scope anterior.
+      const currentPreviews = formData.audio_previews; // This is the state BEFORE the setFormData above? Yes.
+      // But wait, if we are importing for the first time, currentPreviews is empty?
+      // If it is empty, we have nothing to sideload.
+      // If it is NOT empty (editing existing product), we might have legacy URLs.
+
+      // Sideloading cancelado. Se mantiene lógica de no sobrescribir si ya existe.
 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -934,15 +954,15 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
                       <button
                         type="button"
                         onClick={() => removeAudioPreview(index)}
-                      className="p-1 text-zinc-500 hover:text-red-400"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                        className="p-1 text-zinc-500 hover:text-red-400"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
                     <div className="pl-8">
-                      <a 
-                        href={preview.url} 
-                        target="_blank" 
+                      <a
+                        href={preview.url}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-indigo-400 hover:text-indigo-300 break-all"
                       >
@@ -954,12 +974,11 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
               </div>
             )}
 
-            <label 
-              className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
-                dragOverAudio 
-                  ? 'border-indigo-500 bg-indigo-500/10' 
-                  : 'border-zinc-700 hover:border-indigo-500'
-              }`}
+            <label
+              className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all ${dragOverAudio
+                ? 'border-indigo-500 bg-indigo-500/10'
+                : 'border-zinc-700 hover:border-indigo-500'
+                }`}
               onDragOver={handleAudioDragOver}
               onDragLeave={handleAudioDragLeave}
               onDrop={handleAudioDrop}
@@ -1024,11 +1043,10 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
             )}
 
             <div
-              className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl transition-all ${
-                dragOverMaster 
-                  ? 'border-emerald-500 bg-emerald-500/10' 
-                  : 'border-zinc-700 hover:border-emerald-500'
-              }`}
+              className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl transition-all ${dragOverMaster
+                ? 'border-emerald-500 bg-emerald-500/10'
+                : 'border-zinc-700 hover:border-emerald-500'
+                }`}
               onDragOver={handleMasterDragOver}
               onDragLeave={handleMasterDragLeave}
               onDrop={handleMasterDrop}
@@ -1063,10 +1081,9 @@ export default function ProductForm({ product, isEdit = false }: ProductFormProp
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
             <h2 className="text-lg font-semibold text-white">Portada</h2>
 
-            <div 
-              className={`aspect-square bg-zinc-800 rounded-lg overflow-hidden relative transition-all ${
-                dragOverCover ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-zinc-900' : ''
-              }`}
+            <div
+              className={`aspect-square bg-zinc-800 rounded-lg overflow-hidden relative transition-all ${dragOverCover ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-zinc-900' : ''
+                }`}
               onDragOver={handleCoverDragOver}
               onDragLeave={handleCoverDragLeave}
               onDrop={handleCoverDrop}
