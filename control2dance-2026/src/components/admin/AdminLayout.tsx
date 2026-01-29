@@ -17,19 +17,22 @@ import {
   Users,
   Shield,
   Mail,
-  Star
+  Star,
+  BarChart3
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Header from '../Header';
 import Footer from '../Footer';
+import { $isImpersonating, $authLoading } from '../../stores/authStore';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
-  currentPage?: 'dashboard' | 'products' | 'featured' | 'orders' | 'customers' | 'roles' | 'newsletter' | 'settings';
+  currentPage?: 'dashboard' | 'analytics' | 'products' | 'featured' | 'orders' | 'customers' | 'roles' | 'newsletter' | 'settings';
 }
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
+  { id: 'analytics', label: 'Analíticas', icon: BarChart3, href: '/admin/analytics' },
   { id: 'products', label: 'Productos', icon: Package, href: '/admin/products' },
   { id: 'featured', label: 'Destacados', icon: Star, href: '/admin/featured' },
   { id: 'orders', label: 'Pedidos', icon: ShoppingCart, href: '/admin/orders' },
@@ -41,21 +44,25 @@ const navItems = [
 
 export default function AdminLayout({ children, currentPage = 'dashboard' }: AdminLayoutProps) {
   const adminStatus = useStore(isAdmin);
+  const isImpersonating = useStore($isImpersonating);
+  const authLoading = useStore($authLoading);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return;
+
     async function init() {
       const isAdminUser = await checkAdminStatus();
       setLoading(false);
 
-      if (!isAdminUser) {
+      if (!isAdminUser || isImpersonating) {
         window.location.href = '/dashboard';
       }
     }
     init();
-  }, []);
+  }, [isImpersonating, authLoading]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -114,9 +121,12 @@ export default function AdminLayout({ children, currentPage = 'dashboard' }: Adm
     <div className="min-h-screen bg-zinc-950 flex flex-col">
       <Header showSearch={false} />
 
-      <div className="flex-1 flex pt-[72px] md:pt-[88px]">
+      <div className="flex-1 flex pt-[72px] md:pt-[88px]" style={{ paddingTop: isImpersonating ? (typeof window !== 'undefined' && window.innerWidth < 640 ? 'calc(72px + 60px)' : 'calc(88px + 40px)') : undefined }}>
         {/* Sidebar - Desktop */}
-        <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:top-[88px] lg:bottom-0 bg-zinc-900 border-r border-zinc-800 z-30">
+        <aside
+          className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:top-[88px] lg:bottom-0 bg-zinc-900 border-r border-zinc-800 z-30"
+          style={{ top: isImpersonating ? 'calc(88px + 40px)' : '88px' }}
+        >
           {/* Logo */}
           <div className="h-16 flex items-center px-6 border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-xl">
             <span className="text-xl font-black text-white tracking-tight">
@@ -169,7 +179,10 @@ export default function AdminLayout({ children, currentPage = 'dashboard' }: Adm
         {/* Main content wrapper */}
         <div className="flex-1 lg:pl-64 flex flex-col min-h-[calc(100vh-88px)]">
           {/* Mobile header (Admin) */}
-          <div className="lg:hidden sticky top-[72px] z-40 h-14 bg-zinc-900/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-4">
+          <div
+            className="lg:hidden sticky z-40 h-14 bg-zinc-900/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-4 transition-all"
+            style={{ top: isImpersonating ? 'calc(72px + 60px)' : '72px' }}
+          >
             <span className="text-sm font-black text-white tracking-widest uppercase">
               Admin <span className="text-[#ff4d7d]">Panel</span>
             </span>

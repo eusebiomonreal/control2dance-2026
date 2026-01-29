@@ -9,32 +9,65 @@ import { createServerClient } from '../../../lib/supabase';
 
 export const GET: APIRoute = async ({ request }) => {
   try {
-    // Verificar que es admin (simplificado - en producción usar auth)
     const supabase = createServerClient();
 
     // Obtener balance de Stripe
     const balance = await stripe.balance.retrieve();
-    
-    // Obtener checkout sessions pagadas (últimos 30 días)
-    const thirtyDaysAgo = Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60);
+
+    const url = new URL(request.url);
+    const days = url.searchParams.get('days');
+    const startDateParam = url.searchParams.get('startDate');
+    const endDateParam = url.searchParams.get('endDate');
+
+    let gteTimestamp: number;
+    let lteTimestamp: number = Math.floor(Date.now() / 1000);
+    let gteISO: string;
+    let lteISO: string = new Date().toISOString();
+
+    if (startDateParam) {
+      // Rango personalizado
+      const startDate = new Date(startDateParam);
+      gteTimestamp = Math.floor(startDate.getTime() / 1000);
+      gteISO = startDate.toISOString();
+
+      if (endDateParam) {
+        const endDate = new Date(endDateParam);
+        // Asegurar que el fin sea al final del día si solo es fecha, o usar la hora proporcionada
+        // Si viene de un <input type="date">, suele ser YYYY-MM-DD
+        if (endDateParam.length === 10) {
+          endDate.setHours(23, 59, 59, 999);
+        }
+        lteTimestamp = Math.floor(endDate.getTime() / 1000);
+        lteISO = endDate.toISOString();
+      }
+    } else {
+      // Rango predefinido por días
+      const periodDays = parseInt(days || '30');
+      gteTimestamp = Math.floor(Date.now() / 1000) - (periodDays * 24 * 60 * 60);
+      gteISO = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString();
+    }
+
+    // Obtener checkout sessions pagadas
     const sessions = await stripe.checkout.sessions.list({
-      created: { gte: thirtyDaysAgo },
+      created: {
+        gte: gteTimestamp,
+        lte: lteTimestamp
+      },
       limit: 100,
     });
 
     // Filtrar solo los pagados
     const paidSessions = sessions.data.filter(s => s.payment_status === 'paid');
-    
+
     // Calcular totales de Stripe
     const stripeTotal = paidSessions.reduce((sum, s) => sum + (s.amount_total || 0), 0) / 100;
 
-    // Obtener totales de Supabase (últimos 30 días)
-    const thirtyDaysAgoISO = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    
+    // Obtener totales de Supabase
     const { data: orders, error } = await supabase
       .from('orders')
       .select('stripe_session_id, total, status, created_at')
-      .gte('created_at', thirtyDaysAgoISO) as { data: { stripe_session_id: string; total: number; status: string; created_at: string }[] | null; error: any };
+      .gte('created_at', gteISO)
+      .lte('created_at', lteISO) as { data: { stripe_session_id: string; total: number; status: string; created_at: string }[] | null; error: any };
 
     if (error) {
       console.error('Error fetching orders:', error);
@@ -79,7 +112,7 @@ export const GET: APIRoute = async ({ request }) => {
 
   } catch (error) {
     console.error('Error fetching Stripe balance:', error);
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       error: 'Error al obtener balance',
       details: error instanceof Error ? error.message : 'Unknown error'
     }), {

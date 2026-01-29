@@ -1,5 +1,6 @@
 import { atom, computed } from 'nanostores';
 import { supabase } from '../lib/supabase';
+import { $user } from './authStore';
 import type { OrderWithItems, DownloadWithProduct, ActivityWithMetadata } from '../lib/database.types';
 
 // Estado
@@ -51,8 +52,10 @@ export async function loadDashboardData() {
 export async function loadOrders() {
   // Debug: verificar el usuario actual
   const { data: { user } } = await supabase.auth.getUser();
-  console.log('Current user ID:', user?.id);
-  console.log('Current user email:', user?.email);
+  const currentUser = $user.get();
+  const userId = currentUser?.id;
+
+  if (!userId) return;
 
   const { data: orders, error } = await supabase
     .from('orders')
@@ -64,6 +67,7 @@ export async function loadOrders() {
         download_tokens(*)
       )
     `)
+    .eq('user_id', userId)
     .order('created_at', { ascending: false }) as any;
 
   console.log('Orders loaded:', orders?.length || 0, orders);
@@ -85,6 +89,9 @@ export async function loadOrders() {
 }
 
 export async function loadDownloads() {
+  const userId = $user.get()?.id;
+  if (!userId) return;
+
   const { data: downloads, error } = await supabase
     .from('download_tokens')
     .select(`
@@ -92,6 +99,7 @@ export async function loadDownloads() {
       product:products(*),
       order_item:order_items(*)
     `)
+    .eq('user_id', userId)
     .order('created_at', { ascending: false }) as any;
 
   if (error) {
@@ -103,9 +111,13 @@ export async function loadDownloads() {
 }
 
 export async function loadActivities(limit = 20) {
+  const userId = $user.get()?.id;
+  if (!userId) return;
+
   const { data: activities, error } = await supabase
     .from('activity_log')
     .select('*')
+    .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(limit) as any;
 
@@ -135,11 +147,11 @@ export async function logActivity(
 }
 
 // Validar token y obtener lista de archivos
-export async function getDownloadFiles(token: string): Promise<{ 
-  files?: { name: string; size: number }[]; 
+export async function getDownloadFiles(token: string): Promise<{
+  files?: { name: string; size: number }[];
   product?: { name: string; catalog_number: string };
   downloads_remaining?: number;
-  error?: string 
+  error?: string
 }> {
   // Verificar token
   const { data: downloadToken, error } = await supabase
@@ -167,34 +179,34 @@ export async function getDownloadFiles(token: string): Promise<{
     return { error: 'Este enlace de descarga ha sido desactivado' };
   }
 
-  const product = downloadToken.product as { 
+  const product = downloadToken.product as {
     master_files?: { path: string; file_name: string; file_size: number }[];
-    master_file_path?: string; 
-    name?: string; 
-    catalog_number?: string 
+    master_file_path?: string;
+    name?: string;
+    catalog_number?: string
   } | null;
-  
+
   // Nuevo sistema: usar master_files si está disponible
   if (product?.master_files && product.master_files.length > 0) {
-    const audioFiles = product.master_files.map(f => ({ 
-      name: f.file_name, 
-      size: f.file_size || 0 
+    const audioFiles = product.master_files.map(f => ({
+      name: f.file_name,
+      size: f.file_size || 0
     }));
-    
-    return { 
+
+    return {
       files: audioFiles,
       product: { name: product.name || '', catalog_number: product.catalog_number || '' },
       downloads_remaining: downloadToken.max_downloads - downloadToken.download_count
     };
   }
-  
+
   // Legacy: usar master_file_path
   if (!product?.master_file_path) {
     return { error: 'Archivo no disponible' };
   }
 
   const filePath = product.master_file_path.replace('downloads/', '');
-  
+
   const { data: files, error: listError } = await supabase.storage
     .from('downloads')
     .list(filePath);
@@ -207,7 +219,7 @@ export async function getDownloadFiles(token: string): Promise<{
     .filter(f => f.name.endsWith('.wav') || f.name.endsWith('.flac') || f.name.endsWith('.zip'))
     .map(f => ({ name: f.name, size: f.metadata?.size || 0 }));
 
-  return { 
+  return {
     files: audioFiles,
     product: { name: product.name || '', catalog_number: product.catalog_number || '' },
     downloads_remaining: downloadToken.max_downloads - downloadToken.download_count
@@ -244,14 +256,14 @@ export async function getDownloadUrl(token: string, fileName?: string, skipCount
   }
 
   // Generar signed URL desde Supabase Storage
-  const product = downloadToken.product as { 
+  const product = downloadToken.product as {
     master_files?: { path: string; file_name: string; file_size: number }[];
-    master_file_path?: string; 
-    catalog_number?: string 
+    master_file_path?: string;
+    catalog_number?: string
   } | null;
-  
+
   let targetFilePath: string;
-  
+
   // Nuevo sistema: usar master_files
   if (product?.master_files && product.master_files.length > 0) {
     let targetMasterFile;
@@ -268,7 +280,7 @@ export async function getDownloadUrl(token: string, fileName?: string, skipCount
   } else if (product?.master_file_path) {
     // Legacy: usar master_file_path como carpeta
     const folderPath = product.master_file_path.replace('downloads/', '');
-    
+
     // Listar archivos en la carpeta del producto
     const { data: files, error: listError } = await supabase.storage
       .from('downloads')

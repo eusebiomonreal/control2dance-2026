@@ -56,17 +56,34 @@ export const GET: APIRoute = async ({ request }) => {
       });
     }
 
-    // Obtener todos los usuarios
-    const { data: authData, error: usersError } = await supabaseAdmin.auth.admin.listUsers();
+    // Obtener TODOS los usuarios (Supabase limita listUsers a 50 por defecto)
+    let allAuthUsers: any[] = [];
+    let page = 1;
+    let hasMore = true;
 
-    if (usersError) {
-      return new Response(JSON.stringify({ error: usersError.message }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
+    while (hasMore) {
+      const { data: authData, error: usersError } = await supabaseAdmin.auth.admin.listUsers({
+        page: page,
+        perPage: 100
       });
+
+      if (usersError) {
+        return new Response(JSON.stringify({ error: usersError.message }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      allAuthUsers = allAuthUsers.concat(authData.users);
+
+      if (authData.users.length < 100) {
+        hasMore = false;
+      } else {
+        page++;
+      }
     }
 
-    // Obtener pedidos para enriquecer datos
+    // Obtener pedidos para enriquecer datos (Supabase limita a 1000 por defecto, lo cual está bien por ahora)
     const { data: ordersData } = await supabaseAdmin
       .from('orders')
       .select('id, customer_email, total, created_at, status, order_items(id)')
@@ -74,13 +91,13 @@ export const GET: APIRoute = async ({ request }) => {
       .order('created_at', { ascending: false });
 
     // Agrupar pedidos por email
-    const ordersByEmail: Record<string, { 
-      count: number; 
-      total: number; 
+    const ordersByEmail: Record<string, {
+      count: number;
+      total: number;
       lastOrder: string;
       orders: Array<{ id: string; total: number; created_at: string; items_count: number }>;
     }> = {};
-    
+
     (ordersData || []).forEach(order => {
       const email = order.customer_email;
       if (!ordersByEmail[email]) {
@@ -100,7 +117,7 @@ export const GET: APIRoute = async ({ request }) => {
     });
 
     // Combinar datos de usuarios con pedidos
-    const users = authData.users.map(u => ({
+    const users = allAuthUsers.map(u => ({
       id: u.id,
       email: u.email || '',
       name: u.user_metadata?.name || u.user_metadata?.full_name || null,
@@ -112,6 +129,9 @@ export const GET: APIRoute = async ({ request }) => {
       last_order_at: ordersByEmail[u.email || '']?.lastOrder || null,
       orders: ordersByEmail[u.email || '']?.orders || []
     }));
+
+    // Ordenar por fecha de creación (los más recientes primero) para que el frontend reciba una lista útil
+    users.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return new Response(JSON.stringify({ users }), {
       status: 200,

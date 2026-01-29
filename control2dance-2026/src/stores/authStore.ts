@@ -9,41 +9,109 @@ export const $session = atom<Session | null>(null);
 export const $authLoading = atom(true);
 export const $authError = atom<string | null>(null);
 
+// Estado de impersonación
+export const $isImpersonating = atom(false);
+export const $realAdminUser = atom<User | null>(null);
+
 // Computed
 export const $isAuthenticated = computed($user, (user) => !!user);
 export const $userEmail = computed($user, (user) => user?.email ?? null);
-export const $userName = computed($user, (user) => user?.user_metadata?.name ?? user?.email?.split('@')[0] ?? 'Usuario');
+export const $userName = computed($user, (user) => user?.user_metadata?.name ?? user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? 'Usuario');
 export const $userAvatar = computed($user, (user) => {
-  const name = user?.user_metadata?.name ?? user?.email ?? 'U';
+  const name = user?.user_metadata?.name ?? user?.user_metadata?.full_name ?? user?.email ?? 'U';
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`;
 });
+
+// Helper para cookies
+function getCookie(name: string) {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift();
+  return null;
+}
 
 // Inicializar auth listener
 export async function initAuth() {
   $authLoading.set(true);
 
-  // Obtener sesión actual
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session) {
-    $session.set(session);
-    $user.set(session.user);
-    // Cargar productos que ya posee
-    await loadOwnedProducts(session.user.id);
+  // 1. Obtener sesión real de Supabase
+  const { data: { session: realSession } } = await supabase.auth.getSession();
+
+  if (realSession) {
+    const impersonatedId = getCookie('impersonated_user_id');
+
+    // 2. Si hay cookie de impersonación, verificar si el usuario real es admin
+    if (impersonatedId && realSession.user) {
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', realSession.user.id)
+        .single();
+
+      if (roleData?.role === 'admin') {
+        // Cargar datos del usuario suplantado
+        try {
+          const response = await fetch(`/api/admin/user-details?id=${impersonatedId}`, {
+            headers: { 'Authorization': `Bearer ${realSession.access_token}` }
+          });
+
+          if (response.ok) {
+            const targetUser = await response.json();
+            $isImpersonating.set(true);
+            $realAdminUser.set(realSession.user);
+            $user.set(targetUser as User);
+            $session.set(realSession); // Mantenemos la sesión real para las peticiones API
+
+            // Cargar productos del usuario suplantado
+            await loadOwnedProducts(targetUser.id);
+          } else {
+            // Si falla la API, limpiar cookie
+            document.cookie = "impersonated_user_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            $user.set(realSession.user);
+            $session.set(realSession);
+            await loadOwnedProducts(realSession.user.id);
+          }
+        } catch (err) {
+          console.error('Error fetching impersonated user:', err);
+          $user.set(realSession.user);
+          $session.set(realSession);
+          await loadOwnedProducts(realSession.user.id);
+        }
+      } else {
+        // No es admin, ignorar impersonación
+        $user.set(realSession.user);
+        $session.set(realSession);
+        await loadOwnedProducts(realSession.user.id);
+      }
+    } else {
+      // Flujo normal sin impersonación
+      $session.set(realSession);
+      $user.set(realSession.user);
+      await loadOwnedProducts(realSession.user.id);
+    }
   }
 
-  // Escuchar cambios de auth
+  // Escuchar cambios de auth (solo session real)
   supabase.auth.onAuthStateChange(async (event, session) => {
-    $session.set(session);
-    $user.set(session?.user ?? null);
-
-    if (event === 'SIGNED_IN' && session?.user) {
-      $authError.set(null);
-      // Cargar productos que ya posee
-      await loadOwnedProducts(session.user.id);
-    } else if (event === 'SIGNED_OUT') {
-      $authError.set(null);
-      // Limpiar productos al cerrar sesión
+    // Si cerramos sesión, limpiar todo
+    if (event === 'SIGNED_OUT') {
+      $isImpersonating.set(false);
+      $realAdminUser.set(null);
+      $session.set(null);
+      $user.set(null);
       clearOwnedProducts();
+      return;
+    }
+
+    // Para otros eventos, si no estamos impersonando, actualizar normal
+    if (!$isImpersonating.get()) {
+      $session.set(session);
+      $user.set(session?.user ?? null);
+      if (event === 'SIGNED_IN' && session?.user) {
+        $authError.set(null);
+        await loadOwnedProducts(session.user.id);
+      }
     }
   });
 
@@ -51,6 +119,55 @@ export async function initAuth() {
 }
 
 // Acciones
+export async function startImpersonation(userId: string) {
+  const currentSession = $session.get();
+  if (!currentSession) return { success: false, error: 'No session' };
+
+  try {
+    const response = await fetch('/api/admin/impersonate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentSession.access_token}`
+      },
+      body: JSON.stringify({ userId, action: 'start' })
+    });
+
+    if (response.ok) {
+      window.location.reload(); // Recargar para activar initAuth con la cookie
+      return { success: true };
+    } else {
+      const error = await response.json();
+      return { success: false, error: error.error };
+    }
+  } catch (err) {
+    return { success: false, error: 'Error de red' };
+  }
+}
+
+export async function stopImpersonation() {
+  const currentSession = $session.get();
+  if (!currentSession) return { success: false, error: 'No session' };
+
+  try {
+    const response = await fetch('/api/admin/impersonate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentSession.access_token}`
+      },
+      body: JSON.stringify({ action: 'stop' })
+    });
+
+    if (response.ok) {
+      window.location.reload();
+      return { success: true };
+    }
+  } catch (err) {
+    return { success: false, error: 'Error de red' };
+  }
+}
+
 export async function login(email: string, password: string) {
   $authLoading.set(true);
   $authError.set(null);

@@ -14,8 +14,10 @@ import {
   RefreshCw,
   Eye,
   Clock,
-  Send
+  Send,
+  UserPlus
 } from 'lucide-react';
+import { startImpersonation } from '../../stores/authStore';
 
 // Cliente para obtener el token
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || '';
@@ -87,9 +89,9 @@ export default function CustomersTable() {
       }
 
       const { users } = await response.json();
-      
+
       // Ordenar por fecha de registro (más recientes primero)
-      users.sort((a: Customer, b: Customer) => 
+      users.sort((a: Customer, b: Customer) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
@@ -98,7 +100,7 @@ export default function CustomersTable() {
       // Estadísticas
       const withPurchases = users.filter((c: Customer) => c.orders_count > 0);
       const confirmed = users.filter((c: Customer) => c.email_confirmed_at);
-      
+
       setStats({
         total: users.length,
         withPurchases: withPurchases.length,
@@ -113,15 +115,15 @@ export default function CustomersTable() {
   };
 
   const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = 
+    const matchesSearch =
       customer.email?.toLowerCase().includes(search.toLowerCase()) ||
       customer.name?.toLowerCase().includes(search.toLowerCase());
-    
+
     const matchesFilter =
       filter === 'all' ||
       (filter === 'buyers' && customer.orders_count > 0) ||
       (filter === 'no-purchase' && customer.orders_count === 0);
-    
+
     return matchesSearch && matchesFilter;
   });
 
@@ -308,6 +310,17 @@ export default function CustomersTable() {
                         >
                           <Send className="w-4 h-4" />
                         </a>
+                        <button
+                          onClick={() => {
+                            if (confirm(`¿Quieres suplantar la identidad de ${customer.email}?`)) {
+                              startImpersonation(customer.id);
+                            }
+                          }}
+                          className="p-2 text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 rounded-lg transition-colors"
+                          title="Impersonar usuario"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>

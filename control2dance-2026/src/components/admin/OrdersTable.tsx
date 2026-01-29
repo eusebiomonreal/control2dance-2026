@@ -40,6 +40,7 @@ interface OrderItem {
 
 interface Order {
   id: string;
+  order_number: string | null;
   created_at: string;
   paid_at: string | null;
   status: string;
@@ -113,7 +114,8 @@ export default function OrdersTable() {
     const matchesSearch =
       order.customer_email?.toLowerCase().includes(search.toLowerCase()) ||
       order.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
-      order.id.toLowerCase().includes(search.toLowerCase());
+      order.id.toLowerCase().includes(search.toLowerCase()) ||
+      (order.order_number && order.order_number.toLowerCase().includes(search.toLowerCase()));
 
     const matchesFilter =
       filter === 'all' ||
@@ -235,7 +237,7 @@ export default function OrdersTable() {
             <option value="paid">Pagados</option>
             <option value="pending">Pendientes</option>
           </select>
-          
+
           <button
             onClick={loadOrders}
             className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white hover:bg-zinc-700 transition-colors"
@@ -272,8 +274,8 @@ export default function OrdersTable() {
                 {filteredOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-zinc-800/50">
                     <td className="px-6 py-4">
-                      <span className="text-sm font-mono text-zinc-300">
-                        #{order.id.substring(0, 8).toUpperCase()}
+                      <span className="text-sm font-bold text-white">
+                        #{order.order_number || order.id.substring(0, 8).toUpperCase()}
                       </span>
                     </td>
                     <td className="px-6 py-4">

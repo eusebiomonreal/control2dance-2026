@@ -12,14 +12,43 @@ export const GET: APIRoute = async ({ request }) => {
   try {
     const supabase = createServerClient();
     const url = new URL(request.url);
-    const days = Math.min(parseInt(url.searchParams.get('days') || '30'), 90); // Máximo 90 días
+    const days = url.searchParams.get('days');
+    const startDateParam = url.searchParams.get('startDate');
+    const endDateParam = url.searchParams.get('endDate');
+
+    let gteTimestamp: number;
+    let lteTimestamp: number = Math.floor(Date.now() / 1000);
+    let gteISO: string;
+    let lteISO: string = new Date().toISOString();
+
+    if (startDateParam) {
+      // Rango personalizado
+      const startDate = new Date(startDateParam);
+      gteTimestamp = Math.floor(startDate.getTime() / 1000);
+      gteISO = startDate.toISOString();
+
+      if (endDateParam) {
+        const endDate = new Date(endDateParam);
+        if (endDateParam.length === 10) {
+          endDate.setHours(23, 59, 59, 999);
+        }
+        lteTimestamp = Math.floor(endDate.getTime() / 1000);
+        lteISO = endDate.toISOString();
+      }
+    } else {
+      // Rango predefinido por días
+      const periodDays = Math.min(parseInt(days || '30'), 90); // Máximo 90 días para reconcile
+      gteTimestamp = Math.floor(Date.now() / 1000) - (periodDays * 24 * 60 * 60);
+      gteISO = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString();
+    }
 
     // Obtener pagos exitosos de Stripe
-    const startDate = Math.floor(Date.now() / 1000) - (days * 24 * 60 * 60);
-    
     const sessions = await stripe.checkout.sessions.list({
-      limit: 50, // Reducido para evitar timeout
-      created: { gte: startDate },
+      limit: 100,
+      created: {
+        gte: gteTimestamp,
+        lte: lteTimestamp
+      },
       expand: ['data.line_items']
     });
 
@@ -30,7 +59,8 @@ export const GET: APIRoute = async ({ request }) => {
     const { data: orders, error } = await supabase
       .from('orders')
       .select('stripe_session_id, stripe_payment_intent, total, created_at')
-      .gte('created_at', new Date(startDate * 1000).toISOString()) as { data: { stripe_session_id: string; stripe_payment_intent: string; total: number; created_at: string }[] | null; error: any };
+      .gte('created_at', gteISO)
+      .lte('created_at', lteISO) as { data: { stripe_session_id: string; stripe_payment_intent: string; total: number; created_at: string }[] | null; error: any };
 
     if (error) {
       console.error('Error fetching orders:', error);
@@ -40,8 +70,8 @@ export const GET: APIRoute = async ({ request }) => {
     const supabasePaymentIntents = new Set((orders || []).map(o => o.stripe_payment_intent));
 
     // Encontrar sesiones de Stripe que no están en Supabase
-    const missingSessions = paidSessions.filter(session => 
-      !supabaseSessionIds.has(session.id) && 
+    const missingSessions = paidSessions.filter(session =>
+      !supabaseSessionIds.has(session.id) &&
       !supabasePaymentIntents.has(String(session.payment_intent || ''))
     );
 
@@ -73,7 +103,7 @@ export const GET: APIRoute = async ({ request }) => {
         }))
       },
       difference: stripeTotal - supabaseTotal,
-      days
+      days: days || 'custom'
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
@@ -81,7 +111,7 @@ export const GET: APIRoute = async ({ request }) => {
 
   } catch (error) {
     console.error('Error reconciling:', error);
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       error: 'Error al reconciliar',
       details: error instanceof Error ? error.message : 'Unknown error'
     }), {
@@ -91,7 +121,7 @@ export const GET: APIRoute = async ({ request }) => {
   }
 };
 
-// POST para importar sesiones faltantes
+// POST para importar sesiones faltantes (sin cambios necesarios aquí)
 export const POST: APIRoute = async ({ request }) => {
   try {
     const supabase = createServerClient();
@@ -167,7 +197,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Crear order_items y download_tokens
     const lineItems = session.line_items?.data || [];
-    
+
     for (const item of lineItems) {
       const product = item.price?.product as any;
       const productId = product?.metadata?.product_id;
@@ -207,8 +237,8 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
-    return new Response(JSON.stringify({ 
-      success: true, 
+    return new Response(JSON.stringify({
+      success: true,
       orderId: order.id,
       items: lineItems.length
     }), {
@@ -218,7 +248,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   } catch (error) {
     console.error('Error importing session:', error);
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       error: 'Error al importar',
       details: error instanceof Error ? error.message : 'Unknown error'
     }), {

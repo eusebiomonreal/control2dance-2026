@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
-import { $user, $userName, $userAvatar, $isAuthenticated, logout } from '../../stores/authStore';
+import { $user, $userName, $userAvatar, $isAuthenticated, logout, $isImpersonating } from '../../stores/authStore';
 import { User, LogOut, ShoppingBag, Download, Settings, ChevronDown, Shield } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -12,6 +12,7 @@ export default function UserMenu() {
   const userName = useStore($userName);
   const userAvatar = useStore($userAvatar);
   const user = useStore($user);
+  const isImpersonating = useStore($isImpersonating);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -36,7 +37,8 @@ export default function UserMenu() {
         .select('role')
         .eq('user_id', user.id)
         .single();
-      setIsAdmin(data?.role === 'admin');
+
+      setIsAdmin((data as any)?.role === 'admin');
     }
     checkAdmin();
   }, [user?.id]);
@@ -123,7 +125,8 @@ export default function UserMenu() {
               <Settings className="w-4 h-4" />
               Configuración
             </a>
-            {isAdmin && (
+
+            {isAdmin && !isImpersonating && (
               <a
                 href="/admin"
                 className="flex items-center gap-3 px-3 py-2 text-sm text-[#ff4d7d] hover:text-[#ff6b94] hover:bg-zinc-800 rounded-lg transition-colors"
@@ -137,7 +140,7 @@ export default function UserMenu() {
           <div className="p-2 border-t border-zinc-800">
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-zinc-800 rounded-lg transition-colors"
+              className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-100 hover:text-white hover:bg-red-500/20 rounded-lg transition-colors"
             >
               <LogOut className="w-4 h-4" />
               Cerrar Sesión

@@ -24,6 +24,7 @@ export const adminLoading = atom(false);
 export const adminError = atom<string | null>(null);
 export const isAdmin = atom(false);
 export const adminStats = atom<AdminStats | null>(null);
+export const adminPeriodStats = atom<AdminStats | null>(null);
 
 // Verificar si el usuario actual es admin
 export async function checkAdminStatus(): Promise<boolean> {
@@ -77,9 +78,9 @@ export async function loadAdminProducts(): Promise<void> {
 }
 
 // Cargar estadísticas del admin
-export async function loadAdminStats(): Promise<void> {
+export async function loadAdminStats(startDate?: string, endDate?: string): Promise<void> {
   try {
-    // Total productos
+    // Total productos (siempre lo mismo)
     const { count: totalProducts } = await supabase
       .from('products')
       .select('*', { count: 'exact', head: true });
@@ -90,28 +91,35 @@ export async function loadAdminStats(): Promise<void> {
       .select('*', { count: 'exact', head: true })
       .eq('is_active', true);
 
-    // Total órdenes pagadas
-    const { count: totalOrders } = await supabase
+    // Consulta base de órdenes
+    let ordersQuery = supabase
       .from('orders')
-      .select('*', { count: 'exact', head: true })
+      .select('total', { count: 'exact' })
       .eq('status', 'paid');
 
-    // Ingresos totales
-    const { data: revenueData } = await supabase
-      .from('orders')
-      .select('total')
-      .eq('status', 'paid');
+    if (startDate) ordersQuery = ordersQuery.gte('created_at', startDate);
+    if (endDate) ordersQuery = ordersQuery.lte('created_at', endDate);
+
+    const { data: revenueData, count: totalOrders } = await ordersQuery;
 
     const totalRevenue = (revenueData || []).reduce((sum, order) => sum + (order.total || 0), 0);
 
-    adminStats.set({
+    const newStats = {
       totalProducts: totalProducts || 0,
       activeProducts: activeProducts || 0,
       totalOrders: totalOrders || 0,
       totalRevenue
-    });
+    };
+
+    if (startDate || endDate) {
+      adminPeriodStats.set(newStats);
+    } else {
+      adminStats.set(newStats);
+    }
+    return newStats;
   } catch (err) {
     console.error('Error loading admin stats:', err);
+    return null;
   }
 }
 
