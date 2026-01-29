@@ -52,7 +52,7 @@ export async function checkAdminStatus(): Promise<boolean> {
       .eq('user_id', user.id)
       .single();
 
-    if (error || data?.role !== 'admin') {
+    if (error || (data as any)?.role !== 'admin') {
       isAdmin.set(false);
       return false;
     }
@@ -89,7 +89,7 @@ export async function loadAdminProducts(): Promise<void> {
 }
 
 // Cargar estadísticas del admin
-export async function loadAdminStats(startDate?: string, endDate?: string): Promise<void> {
+export async function loadAdminStats(startDate?: string, endDate?: string): Promise<AdminStats | null> {
   try {
     // Total productos (siempre lo mismo)
     const { count: totalProducts } = await supabase
@@ -106,14 +106,14 @@ export async function loadAdminStats(startDate?: string, endDate?: string): Prom
     let ordersQuery = supabase
       .from('orders')
       .select('id, order_number, customer_name, customer_email, total, status, created_at', { count: 'exact' })
-      .eq('status', 'paid');
+      .eq('status', 'paid' as any);
 
     if (startDate) ordersQuery = ordersQuery.gte('created_at', startDate);
     if (endDate) ordersQuery = ordersQuery.lte('created_at', endDate);
 
     const { data: ordersData, count: totalOrders } = await ordersQuery.order('created_at', { ascending: false });
 
-    const totalRevenue = (ordersData || []).reduce((sum, order) => sum + (order.total || 0), 0);
+    const totalRevenue = (ordersData as any[] || []).reduce((sum, order) => sum + (order.total || 0), 0);
 
     const newStats = {
       totalProducts: totalProducts || 0,
@@ -124,11 +124,10 @@ export async function loadAdminStats(startDate?: string, endDate?: string): Prom
 
     if (startDate || endDate) {
       adminPeriodStats.set(newStats);
-      adminPeriodOrders.set((ordersData as AdminOrder[]) || []);
+      adminPeriodOrders.set((ordersData as unknown as AdminOrder[]) || []);
     } else {
       adminStats.set(newStats);
-      // Si cargamos "Todo", también actualizamos la lista de órdenes si no hay filtro de periodo
-      adminPeriodOrders.set((ordersData as AdminOrder[]) || []);
+      adminPeriodOrders.set((ordersData as unknown as AdminOrder[]) || []);
     }
     return newStats;
   } catch (err) {
@@ -138,23 +137,23 @@ export async function loadAdminStats(startDate?: string, endDate?: string): Prom
 }
 
 // Crear producto
-export async function createProduct(productData: Omit<DBProduct, 'id' | 'created_at' | 'updated_at'>): Promise<DBProduct | null> {
+export async function createProduct(productData: any): Promise<DBProduct | null> {
   adminLoading.set(true);
   adminError.set(null);
 
   try {
     const { data, error } = await supabase
       .from('products')
-      .insert(productData)
+      .insert(productData as any)
       .select()
       .single();
 
     if (error) throw error;
 
     // Actualizar lista local
-    adminProducts.set([data, ...adminProducts.get()]);
+    adminProducts.set([data as DBProduct, ...adminProducts.get()]);
 
-    return data;
+    return data as DBProduct;
   } catch (err: any) {
     console.error('Error creating product:', err);
     adminError.set(err.message || 'Error al crear producto');
@@ -165,14 +164,14 @@ export async function createProduct(productData: Omit<DBProduct, 'id' | 'created
 }
 
 // Actualizar producto
-export async function updateProduct(id: string, updates: Partial<DBProduct>): Promise<DBProduct | null> {
+export async function updateProduct(id: string, updates: any): Promise<DBProduct | null> {
   adminLoading.set(true);
   adminError.set(null);
 
   try {
     const { data, error } = await supabase
       .from('products')
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .update({ ...updates, updated_at: new Date().toISOString() } as any)
       .eq('id', id)
       .select()
       .single();
@@ -181,10 +180,10 @@ export async function updateProduct(id: string, updates: Partial<DBProduct>): Pr
 
     // Actualizar lista local
     adminProducts.set(
-      adminProducts.get().map(p => p.id === id ? data : p)
+      adminProducts.get().map(p => p.id === id ? data as DBProduct : p)
     );
 
-    return data;
+    return data as DBProduct;
   } catch (err: any) {
     console.error('Error updating product:', err);
     adminError.set(err.message || 'Error al actualizar producto');
@@ -202,7 +201,7 @@ export async function deleteProduct(id: string): Promise<boolean> {
   try {
     const { error } = await supabase
       .from('products')
-      .update({ is_active: false })
+      .update({ is_active: false } as any)
       .eq('id', id);
 
     if (error) throw error;
@@ -230,7 +229,7 @@ export async function restoreProduct(id: string): Promise<boolean> {
   try {
     const { error } = await supabase
       .from('products')
-      .update({ is_active: true })
+      .update({ is_active: true } as any)
       .eq('id', id);
 
     if (error) throw error;
