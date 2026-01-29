@@ -362,10 +362,12 @@ class EDD_Data_Exporter {
         $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$wpdb->prefix}edd_orders'");
         
         if ($table_exists) {
-            // EDD 3.0+ - use new tables
+            // EDD 3.0+ - use new tables with JOIN to get customer info properly
             $orders = $wpdb->get_results("
-                SELECT * FROM {$wpdb->prefix}edd_orders
-                ORDER BY id DESC
+                SELECT o.*, c.name as real_customer_name, c.email as real_customer_email
+                FROM {$wpdb->prefix}edd_orders o
+                LEFT JOIN {$wpdb->prefix}edd_customers c ON o.customer_id = c.id
+                ORDER BY o.id DESC
             ");
             
             foreach ($orders as $order) {
@@ -390,8 +392,8 @@ class EDD_Data_Exporter {
                 $data[] = [
                     'id' => $order->id,
                     'order_number' => $order->order_number,
-                    'customer_email' => $order->email,
-                    'customer_name' => $order->name,
+                    'customer_email' => !empty($order->real_customer_email) ? $order->real_customer_email : $order->email,
+                    'customer_name' => !empty($order->real_customer_name) ? $order->real_customer_name : $order->name,
                     'total' => $order->total,
                     'subtotal' => $order->subtotal,
                     'tax' => $order->tax,

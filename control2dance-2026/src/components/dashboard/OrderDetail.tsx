@@ -42,6 +42,7 @@ interface Order {
   customer_name: string;
   stripe_payment_intent: string | null;
   items: OrderItem[];
+  order_number?: number;
 }
 
 interface FileInfo {
@@ -53,7 +54,7 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Estado para descargas
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [files, setFiles] = useState<Record<string, FileInfo[]>>({});
@@ -68,14 +69,14 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
 
   const loadOrder = async () => {
     console.log('Loading order with ID:', orderId);
-    
+
     const { data, error } = await supabase
       .from('orders')
       .select(`
         *,
         items:order_items(
           *,
-          product:products(cover_image),
+          product:products(id, name, cover_image, catalog_number),
           download_tokens(*)
         )
       `)
@@ -104,19 +105,19 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
 
   const loadFiles = async (item: OrderItem) => {
     if (!item.download_token?.token) return;
-    
+
     const itemId = item.id;
     setFilesLoading(itemId);
     setDownloadError(null);
-    
+
     const result = await getDownloadFiles(item.download_token.token);
-    
+
     if (result.error) {
       setDownloadError(result.error);
     } else {
       setFiles(prev => ({ ...prev, [itemId]: result.files || [] }));
     }
-    
+
     setFilesLoading(null);
   };
 
@@ -152,18 +153,18 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
       link.style.display = 'none';
       document.body.appendChild(link);
       link.click();
-      
+
       setTimeout(() => {
         document.body.removeChild(link);
       }, 100);
 
       setDownloadedFiles(prev => new Set(prev).add(fileName));
-      
+
       // Actualizar contador en el estado local
       if (order) {
         setOrder({
           ...order,
-          items: order.items.map(i => 
+          items: order.items.map(i =>
             i.id === item.id && i.download_token
               ? { ...i, download_token: { ...i.download_token, download_count: i.download_token.download_count + 1 } }
               : i
@@ -183,7 +184,7 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
 
     for (const file of itemFiles) {
       if (downloadedFiles.has(file.name)) continue;
-      
+
       setDownloading(file.name);
       const result = await getDownloadUrl(item.download_token.token, file.name, true);
 
@@ -199,11 +200,11 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
         link.style.display = 'none';
         document.body.appendChild(link);
         link.click();
-        
+
         setTimeout(() => {
           document.body.removeChild(link);
         }, 100);
-        
+
         setDownloadedFiles(prev => new Set(prev).add(file.name));
         await new Promise(resolve => setTimeout(resolve, 1500));
       }
@@ -211,12 +212,12 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
 
     // Incrementar contador solo 1 vez al final
     await incrementDownloadCount(item.download_token.token);
-    
+
     // Actualizar estado local
     if (order) {
       setOrder({
         ...order,
-        items: order.items.map(i => 
+        items: order.items.map(i =>
           i.id === item.id && i.download_token
             ? { ...i, download_token: { ...i.download_token, download_count: i.download_token.download_count + 1 } }
             : i
@@ -264,11 +265,18 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
   };
 
   const getDownloadStatus = (token: DownloadToken | null | undefined) => {
-    if (!token) return { available: false, reason: 'Sin token' };
-    if (!token.is_active) return { available: false, reason: 'Desactivado' };
-    if (new Date(token.expires_at) < new Date()) return { available: false, reason: 'Expirado' };
-    if (token.download_count >= token.max_downloads) return { available: false, reason: 'Límite alcanzado' };
-    return { available: true, remaining: token.max_downloads - token.download_count };
+    if (!token) return { status: 'none', label: 'Sin token', color: 'text-zinc-500' };
+    if (!token.is_active) return { status: 'inactive', label: 'Desactivado', color: 'text-zinc-400' };
+
+    const now = new Date();
+    const expiresAt = new Date(token.expires_at);
+    if (expiresAt < now) return { status: 'expired', label: 'Expirado', color: 'text-red-400' };
+
+    if (token.download_count >= token.max_downloads) {
+      return { status: 'exhausted', label: 'Límite alcanzado', color: 'text-amber-400' };
+    }
+
+    return { status: 'active', label: 'Disponible', color: 'text-emerald-400', remaining: token.max_downloads - token.download_count };
   };
 
   if (loading) {
@@ -308,7 +316,9 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
         </a>
         <div className="flex-1">
           <h1 className="text-xl font-bold text-white">Pedido</h1>
-          <p className="text-sm text-zinc-400">#{order.id.slice(0, 8).toUpperCase()}</p>
+          <p className="text-sm text-zinc-400">
+            {order.order_number ? `#${order.order_number}` : `#${order.id.slice(0, 8).toUpperCase()}`}
+          </p>
         </div>
         {getStatusBadge(order.status)}
       </div>
@@ -343,21 +353,21 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
       </div>
 
       {/* Productos con descargas integradas */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-zinc-800">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
+        <div className="px-5 py-4 border-b border-zinc-800/50 bg-zinc-800/20">
           <h2 className="text-lg font-semibold text-white">Productos</h2>
         </div>
         <div className="divide-y divide-zinc-800">
           {order.items?.map((item) => {
-            const downloadStatus = getDownloadStatus(item.download_token);
+            const statusInfo = getDownloadStatus(item.download_token);
             const isExpanded = expandedItem === item.id;
             const itemFiles = files[item.id] || [];
-            
+
             return (
               <div key={item.id} className="flex flex-col">
                 {/* Producto */}
-                <div className="flex items-center gap-4 p-5">
-                  <div className="w-14 h-14 bg-zinc-800 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                <div className="flex items-center gap-4 p-5 hover:bg-zinc-800/30 transition-colors">
+                  <div className="w-14 h-14 bg-zinc-800 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 border border-white/5 shadow-md">
                     {item.product?.cover_image ? (
                       <img
                         src={item.product.cover_image}
@@ -365,32 +375,48 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <Package className="w-6 h-6 text-zinc-500" />
+                      <div className="w-full h-full flex items-center justify-center bg-zinc-800">
+                        <Music className="w-6 h-6 text-zinc-600" />
+                      </div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-white truncate">{item.product_name}</p>
-                    <p className="text-sm text-zinc-400">{item.product_catalog_number}</p>
-                    {order.status === 'paid' && downloadStatus.available && (
-                      <p className="text-xs text-green-400 mt-1">
-                        {downloadStatus.remaining} descarga{downloadStatus.remaining !== 1 ? 's' : ''} disponible{downloadStatus.remaining !== 1 ? 's' : ''}
-                      </p>
-                    )}
-                    {order.status === 'paid' && !downloadStatus.available && (
-                      <p className="text-xs text-zinc-500 mt-1">{downloadStatus.reason}</p>
+                    <p className="font-bold text-white truncate text-base">{item.product_name}</p>
+                    <p className="text-xs text-zinc-500 font-mono uppercase tracking-wider">{item.product_catalog_number}</p>
+
+                    {order.status === 'paid' && (
+                      <div className="flex items-center gap-3 mt-2">
+                        {item.download_token ? (
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-widest border ${statusInfo.status === 'active' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                              statusInfo.status === 'exhausted' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                                'bg-red-500/10 text-red-500 border-red-500/20'
+                              }`}>
+                              {statusInfo.label}
+                            </span>
+                            <div className="flex items-center gap-1 text-[10px] font-mono text-zinc-500 bg-black/20 px-2 py-0.5 rounded">
+                              <Download className="w-2.5 h-2.5" />
+                              <span>{item.download_token.download_count}/{item.download_token.max_downloads}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest bg-zinc-800/50 px-2 py-0.5 rounded">
+                            Sin enlace disponible
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
-                  <p className="text-white font-medium mr-4">€{item.price.toFixed(2)}</p>
-                  
+                  <p className="text-white font-bold mr-4">€{item.price.toFixed(2)}</p>
+
                   {/* Botón de descargar */}
-                  {order.status === 'paid' && downloadStatus.available && (
+                  {order.status === 'paid' && statusInfo.status === 'active' && (
                     <button
                       onClick={() => toggleExpand(item)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                        isExpanded 
-                          ? 'bg-indigo-600 text-white' 
-                          : 'bg-zinc-800 hover:bg-zinc-700 text-white'
-                      }`}
+                      className={`flex items-center gap-2 px-5 py-2 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-lg ${isExpanded
+                        ? 'bg-indigo-600 text-white shadow-indigo-600/20'
+                        : 'bg-zinc-800 hover:bg-zinc-700 text-white'
+                        }`}
                     >
                       <Download className="w-4 h-4" />
                       <span className="hidden sm:inline">Descargar</span>
@@ -424,7 +450,7 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
                               Descargar todos ({itemFiles.length} archivos)
                             </button>
                           )}
-                          
+
                           {/* Lista de archivos */}
                           {itemFiles.map((file) => (
                             <div
@@ -461,7 +487,7 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
                           No hay archivos disponibles
                         </p>
                       )}
-                      
+
                       {downloadError && (
                         <p className="text-sm text-red-400 mt-3 text-center">{downloadError}</p>
                       )}
@@ -482,7 +508,7 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
           </div>
           <h2 className="text-lg font-semibold text-white">Resumen</h2>
         </div>
-        
+
         <div className="space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-zinc-400">Subtotal</span>

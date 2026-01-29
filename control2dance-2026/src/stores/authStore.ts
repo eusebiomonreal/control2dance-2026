@@ -168,6 +168,56 @@ export async function stopImpersonation() {
   }
 }
 
+export async function consumeImpersonatedTokens() {
+  const currentSession = $session.get();
+  if (!currentSession) return { success: false, error: 'No session' };
+
+  try {
+    const response = await fetch('/api/admin/impersonate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentSession.access_token}`
+      },
+      body: JSON.stringify({ action: 'consume-tokens' })
+    });
+
+    if (response.ok) {
+      return { success: true };
+    } else {
+      const error = await response.json();
+      return { success: false, error: error.error };
+    }
+  } catch (err) {
+    return { success: false, error: 'Error de red' };
+  }
+}
+
+export async function resetImpersonatedTokens() {
+  const currentSession = $session.get();
+  if (!currentSession) return { success: false, error: 'No session' };
+
+  try {
+    const response = await fetch('/api/admin/impersonate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentSession.access_token}`
+      },
+      body: JSON.stringify({ action: 'reset-tokens' })
+    });
+
+    if (response.ok) {
+      return { success: true };
+    } else {
+      const error = await response.json();
+      return { success: false, error: error.error };
+    }
+  } catch (err) {
+    return { success: false, error: 'Error de red' };
+  }
+}
+
 export async function login(email: string, password: string) {
   $authLoading.set(true);
   $authError.set(null);

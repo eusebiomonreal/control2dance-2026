@@ -50,11 +50,7 @@ export async function loadDashboardData() {
 }
 
 export async function loadOrders() {
-  // Debug: verificar el usuario actual
-  const { data: { user } } = await supabase.auth.getUser();
-  const currentUser = $user.get();
-  const userId = currentUser?.id;
-
+  const userId = $user.get()?.id;
   if (!userId) return;
 
   const { data: orders, error } = await supabase
@@ -63,14 +59,13 @@ export async function loadOrders() {
       *,
       items:order_items(
         *,
-        product:products(id, name, cover_image, catalog_number),
+        product:products(*),
         download_tokens(*)
       )
     `)
     .eq('user_id', userId)
     .order('created_at', { ascending: false }) as any;
 
-  console.log('Orders loaded:', orders?.length || 0, orders);
   if (error) {
     console.error('Error loading orders:', error);
     return;
@@ -85,6 +80,7 @@ export async function loadOrders() {
     }))
   }));
 
+  console.log('[Dashboard] Transformed orders for user:', userId, transformedOrders.length);
   $orders.set(transformedOrders as OrderWithItems[]);
 }
 
@@ -107,6 +103,7 @@ export async function loadDownloads() {
     return;
   }
 
+  console.log('[Dashboard] Loaded downloads for user:', userId, downloads?.length || 0);
   $downloads.set((downloads || []) as DownloadWithProduct[]);
 }
 

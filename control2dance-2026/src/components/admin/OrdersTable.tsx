@@ -40,7 +40,7 @@ interface OrderItem {
 
 interface Order {
   id: string;
-  order_number: string | null;
+  order_number: number | null;
   created_at: string;
   paid_at: string | null;
   status: string;
@@ -111,11 +111,14 @@ export default function OrdersTable() {
   };
 
   const filteredOrders = orders.filter(order => {
+    const searchTerm = search.toLowerCase().replace('#', '');
+    const searchRaw = search.toLowerCase();
+
     const matchesSearch =
-      order.customer_email?.toLowerCase().includes(search.toLowerCase()) ||
-      order.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
-      order.id.toLowerCase().includes(search.toLowerCase()) ||
-      (order.order_number && order.order_number.toLowerCase().includes(search.toLowerCase()));
+      order.customer_email?.toLowerCase().includes(searchRaw) ||
+      order.customer_name?.toLowerCase().includes(searchRaw) ||
+      order.id.toLowerCase().includes(searchRaw) ||
+      (order.order_number && order.order_number.toString().includes(searchTerm));
 
     const matchesFilter =
       filter === 'all' ||
@@ -220,7 +223,7 @@ export default function OrdersTable() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
           <input
             type="text"
-            placeholder="Buscar por email, nombre o ID..."
+            placeholder="Buscar por nº pedido (#123), email o nombre..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
