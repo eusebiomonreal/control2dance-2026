@@ -91,31 +91,31 @@ export async function loadAdminProducts(): Promise<void> {
 // Cargar estadísticas del admin
 export async function loadAdminStats(startDate?: string, endDate?: string): Promise<AdminStats | null> {
   try {
-    // Total productos (siempre lo mismo)
+    // Total productos
     const { count: totalProducts } = await supabase
-      .from('products')
+      .from('products' as any)
       .select('*', { count: 'exact', head: true });
 
     // Productos activos
     const { count: activeProducts } = await supabase
-      .from('products')
+      .from('products' as any)
       .select('*', { count: 'exact', head: true })
       .eq('is_active', true);
 
     // Consulta base de órdenes
     let ordersQuery = supabase
-      .from('orders')
+      .from('orders' as any)
       .select('id, order_number, customer_name, customer_email, total, status, created_at', { count: 'exact' })
-      .eq('status', 'paid' as any);
+      .eq('status', 'paid');
 
-    if (startDate) ordersQuery = ordersQuery.gte('created_at', startDate);
-    if (endDate) ordersQuery = ordersQuery.lte('created_at', endDate);
+    if (startDate) ordersQuery = (ordersQuery as any).gte('created_at', startDate);
+    if (endDate) ordersQuery = (ordersQuery as any).lte('created_at', endDate);
 
-    const { data: ordersData, count: totalOrders } = await ordersQuery.order('created_at', { ascending: false });
+    const { data: ordersData, count: totalOrders } = await (ordersQuery as any).order('created_at', { ascending: false });
 
     const totalRevenue = (ordersData as any[] || []).reduce((sum, order) => sum + (order.total || 0), 0);
 
-    const newStats = {
+    const newStats: AdminStats = {
       totalProducts: totalProducts || 0,
       activeProducts: activeProducts || 0,
       totalOrders: totalOrders || 0,
@@ -142,18 +142,18 @@ export async function createProduct(productData: any): Promise<DBProduct | null>
   adminError.set(null);
 
   try {
-    const { data, error } = await supabase
-      .from('products')
-      .insert(productData as any)
+    const { data, error } = await (supabase.from('products' as any) as any)
+      .insert(productData)
       .select()
       .single();
 
     if (error) throw error;
 
     // Actualizar lista local
-    adminProducts.set([data as DBProduct, ...adminProducts.get()]);
+    const newProduct = data as DBProduct;
+    adminProducts.set([newProduct, ...adminProducts.get()]);
 
-    return data as DBProduct;
+    return newProduct;
   } catch (err: any) {
     console.error('Error creating product:', err);
     adminError.set(err.message || 'Error al crear producto');
@@ -169,9 +169,8 @@ export async function updateProduct(id: string, updates: any): Promise<DBProduct
   adminError.set(null);
 
   try {
-    const { data, error } = await supabase
-      .from('products')
-      .update({ ...updates, updated_at: new Date().toISOString() } as any)
+    const { data, error } = await (supabase.from('products' as any) as any)
+      .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single();
@@ -179,11 +178,12 @@ export async function updateProduct(id: string, updates: any): Promise<DBProduct
     if (error) throw error;
 
     // Actualizar lista local
+    const updatedProduct = data as DBProduct;
     adminProducts.set(
-      adminProducts.get().map(p => p.id === id ? data as DBProduct : p)
+      adminProducts.get().map(p => p.id === id ? updatedProduct : p)
     );
 
-    return data as DBProduct;
+    return updatedProduct;
   } catch (err: any) {
     console.error('Error updating product:', err);
     adminError.set(err.message || 'Error al actualizar producto');
@@ -199,9 +199,8 @@ export async function deleteProduct(id: string): Promise<boolean> {
   adminError.set(null);
 
   try {
-    const { error } = await supabase
-      .from('products')
-      .update({ is_active: false } as any)
+    const { error } = await (supabase.from('products' as any) as any)
+      .update({ is_active: false })
       .eq('id', id);
 
     if (error) throw error;
@@ -227,9 +226,8 @@ export async function restoreProduct(id: string): Promise<boolean> {
   adminError.set(null);
 
   try {
-    const { error } = await supabase
-      .from('products')
-      .update({ is_active: true } as any)
+    const { error } = await (supabase.from('products' as any) as any)
+      .update({ is_active: true })
       .eq('id', id);
 
     if (error) throw error;
