@@ -37,7 +37,56 @@ export const adminStats = atom<AdminStats | null>(null);
 export const adminPeriodStats = atom<AdminStats | null>(null);
 export const adminPeriodOrders = atom<AdminOrder[]>([]);
 
-// ... (checkAdminStatus and loadAdminProducts logic unchanged) ...
+// Verificar si el usuario actual es admin
+export async function checkAdminStatus(): Promise<boolean> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      isAdmin.set(false);
+      return false;
+    }
+
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+
+    if (error || data?.role !== 'admin') {
+      isAdmin.set(false);
+      return false;
+    }
+
+    isAdmin.set(true);
+    return true;
+  } catch (err) {
+    console.error('Error checking admin status:', err);
+    isAdmin.set(false);
+    return false;
+  }
+}
+
+// Cargar todos los productos (incluyendo inactivos)
+export async function loadAdminProducts(): Promise<void> {
+  adminLoading.set(true);
+  adminError.set(null);
+
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    adminProducts.set(data || []);
+  } catch (err) {
+    console.error('Error loading admin products:', err);
+    adminError.set('Error al cargar productos');
+  } finally {
+    adminLoading.set(false);
+  }
+}
 
 // Cargar estadísticas del admin
 export async function loadAdminStats(startDate?: string, endDate?: string): Promise<void> {
