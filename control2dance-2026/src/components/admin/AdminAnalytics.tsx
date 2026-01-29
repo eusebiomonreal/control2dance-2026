@@ -4,8 +4,8 @@
 
 import { useEffect, useState } from 'react';
 import { useStore } from '@nanostores/react';
-import { adminStats, adminPeriodStats, loadAdminStats } from '../../stores/adminStore';
-import { ShoppingCart, TrendingUp, RefreshCw, CheckCircle, AlertTriangle, CreditCard, BarChart3, ArrowLeft, Calendar } from 'lucide-react';
+import { adminStats, adminPeriodStats, adminPeriodOrders, loadAdminStats } from '../../stores/adminStore';
+import { ShoppingCart, TrendingUp, RefreshCw, CheckCircle, AlertTriangle, CreditCard, BarChart3, ArrowLeft, Calendar, Eye, ExternalLink } from 'lucide-react';
 
 interface StripeBalance {
     stripe: {
@@ -48,6 +48,7 @@ interface ReconcileData {
 export default function AdminAnalytics() {
     const stats = useStore(adminStats);
     const periodStats = useStore(adminPeriodStats);
+    const periodOrders = useStore(adminPeriodOrders);
     const [stripeBalance, setStripeBalance] = useState<StripeBalance | null>(null);
     const [loadingStripe, setLoadingStripe] = useState(false);
     const [reconcileData, setReconcileData] = useState<ReconcileData | null>(null);
@@ -174,6 +175,16 @@ export default function AdminAnalytics() {
         return new Intl.NumberFormat('es-ES', { style: 'currency', currency }).format(amount);
     };
 
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
     return (
         <div className="p-6 lg:p-8 space-y-8">
             {/* Header */}
@@ -204,8 +215,8 @@ export default function AdminAnalytics() {
                                 setPeriodLabel(p.label === 'Todo' ? 'todo el tiempo' : p.label);
                             }}
                             className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${!isCustom && period === p.id
-                                    ? 'bg-[#ff4d7d] text-white shadow-lg shadow-[#ff4d7d]/20'
-                                    : 'text-zinc-500 hover:text-white hover:bg-zinc-800'
+                                ? 'bg-[#ff4d7d] text-white shadow-lg shadow-[#ff4d7d]/20'
+                                : 'text-zinc-500 hover:text-white hover:bg-zinc-800'
                                 }`}
                         >
                             {p.label}
@@ -214,8 +225,8 @@ export default function AdminAnalytics() {
                     <button
                         onClick={() => setIsCustom(true)}
                         className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${isCustom
-                                ? 'bg-[#ff4d7d] text-white shadow-lg shadow-[#ff4d7d]/20'
-                                : 'text-zinc-500 hover:text-white hover:bg-zinc-800'
+                            ? 'bg-[#ff4d7d] text-white shadow-lg shadow-[#ff4d7d]/20'
+                            : 'text-zinc-500 hover:text-white hover:bg-zinc-800'
                             }`}
                     >
                         <Calendar className="w-3.5 h-3.5 inline-block mr-1" />
@@ -364,6 +375,88 @@ export default function AdminAnalytics() {
                     ) : (
                         <div className="p-12 text-center text-zinc-500 animate-pulse">Cargando datos financieros...</div>
                     )}
+                </div>
+            </section>
+
+            {/* Order List for Period */}
+            <section className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
+                <div className="p-6 border-b border-zinc-800 bg-zinc-800/30 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-[#ff4d7d]/10 rounded-xl flex items-center justify-center">
+                            <ShoppingCart className="w-5 h-5 text-[#ff4d7d]" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-white uppercase tracking-tight">Pedidos en este periodo</h2>
+                            <p className="text-xs text-zinc-500">Listado detallado de transacciones ({periodLabel})</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="bg-zinc-950/50 border-b border-zinc-800/50">
+                                <th className="px-6 py-4 text-left text-[10px] font-black text-zinc-500 uppercase tracking-widest">Pedido</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-black text-zinc-500 uppercase tracking-widest">Cliente</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-black text-zinc-500 uppercase tracking-widest">Fecha</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-black text-zinc-500 uppercase tracking-widest">Importe</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-black text-zinc-500 uppercase tracking-widest">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-800/50">
+                            {periodOrders.length > 0 ? (
+                                periodOrders.map((order) => (
+                                    <tr key={order.id} className="hover:bg-zinc-800/30 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <span className="text-sm font-black text-white">
+                                                #{order.order_number || order.id.substring(0, 8).toUpperCase()}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div>
+                                                <p className="text-sm font-bold text-zinc-200">{order.customer_name || 'Sin nombre'}</p>
+                                                <p className="text-xs text-zinc-500">{order.customer_email}</p>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <p className="text-sm text-zinc-400 font-medium">{formatDate(order.created_at)}</p>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-sm font-black text-emerald-400">
+                                                {formatCurrency(order.total)}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <a
+                                                href={`/admin/orders/${order.id}`}
+                                                className="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-lg transition-all inline-block"
+                                                title="Ver detalle"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </a>
+                                            {order.id.length > 8 && (
+                                                <a
+                                                    href={`/admin/orders/${order.id}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-2 text-zinc-500 hover:text-indigo-400 hover:bg-zinc-800 rounded-lg transition-all inline-block ml-1"
+                                                    title="Abrir en pestaña nueva"
+                                                >
+                                                    <ExternalLink className="w-4 h-4" />
+                                                </a>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-12 text-center text-zinc-500 font-medium">
+                                        No se encontraron pedidos en este periodo
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </section>
 
