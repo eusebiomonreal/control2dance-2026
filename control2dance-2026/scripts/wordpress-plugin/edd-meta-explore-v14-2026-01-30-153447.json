@@ -1,0 +1,51 @@
+{
+    "exported_at": "2026-01-30 16:34:47",
+    "table_columns": [
+        {
+            "Field": "meta_id",
+            "Type": "bigint unsigned",
+            "Null": "NO",
+            "Key": "PRI",
+            "Default": null,
+            "Extra": "auto_increment"
+        },
+        {
+            "Field": "edd_order_id",
+            "Type": "bigint unsigned",
+            "Null": "NO",
+            "Key": "MUL",
+            "Default": "0",
+            "Extra": ""
+        },
+        {
+            "Field": "meta_key",
+            "Type": "varchar(255)",
+            "Null": "YES",
+            "Key": "MUL",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "meta_value",
+            "Type": "longtext",
+            "Null": "YES",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        }
+    ],
+    "unique_keys": [
+        "paypal_order_id",
+        "tax_rate",
+        "unlimited_downloads",
+        "_pre_trash_status",
+        "_wysija_subscribed",
+        "_edd_paypal_refunded"
+    ],
+    "sample_data": [],
+    "stripe_sample": {
+        "order_number": "840",
+        "order_id": "13410",
+        "metas": []
+    }
+}

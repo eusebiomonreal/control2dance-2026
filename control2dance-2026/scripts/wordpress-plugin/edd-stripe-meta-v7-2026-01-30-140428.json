@@ -1,0 +1,147 @@
+{
+    "exported_at": "2026-01-30 15:04:28",
+    "stripe_orders": [
+        {
+            "order_id": "13410",
+            "order_number": "840",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13407",
+            "order_number": "837",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13403",
+            "order_number": "833",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": {
+                "unlimited_downloads": "1"
+            },
+            "postmeta": []
+        },
+        {
+            "order_id": "13402",
+            "order_number": "832",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13400",
+            "order_number": "830",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13398",
+            "order_number": "828",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13397",
+            "order_number": "827",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13396",
+            "order_number": "826",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13394",
+            "order_number": "824",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13393",
+            "order_number": "823",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13392",
+            "order_number": "822",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13391",
+            "order_number": "821",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13390",
+            "order_number": "820",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13389",
+            "order_number": "819",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13388",
+            "order_number": "818",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13387",
+            "order_number": "817",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13386",
+            "order_number": "816",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13385",
+            "order_number": "815",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13384",
+            "order_number": "814",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        },
+        {
+            "order_id": "13382",
+            "order_number": "812",
+            "gateway": "stripe_checkout",
+            "edd_ordermeta": [],
+            "postmeta": []
+        }
+    ]
+}

@@ -6,7 +6,7 @@ dotenv.config();
 
 const SUPABASE_URL = process.env.PUBLIC_SUPABASE_URL || '';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
-const JSON_FILE = 'scripts/wordpress-plugin/edd-export-v5-2026-01-30-074053.json';
+const JSON_FILE = 'scripts/wordpress-plugin/edd-export-v11-2026-01-30-151230.json';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
