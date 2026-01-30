@@ -26,6 +26,10 @@ export interface AdminOrder {
   total: number;
   status: string;
   created_at: string;
+  payment_method: string | null;
+  stripe_receipt_url: string | null;
+  stripe_payment_intent: string | null;
+  stripe_session_id: string | null;
 }
 
 // Atoms
@@ -105,7 +109,7 @@ export async function loadAdminStats(startDate?: string, endDate?: string): Prom
     // Consulta base de órdenes
     let ordersQuery = supabase
       .from('orders' as any)
-      .select('id, order_number, customer_name, customer_email, total, status, created_at', { count: 'exact' })
+      .select('id, order_number, customer_name, customer_email, total, status, created_at, payment_method, stripe_receipt_url, stripe_payment_intent, stripe_session_id', { count: 'exact' })
       .eq('status', 'paid');
 
     if (startDate) ordersQuery = (ordersQuery as any).gte('created_at', startDate);

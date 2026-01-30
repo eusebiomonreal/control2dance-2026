@@ -15,13 +15,16 @@ import {
   ExternalLink,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  FileText
 } from 'lucide-react';
 
 // Cliente sin tipos para evitar errores de TypeScript
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || '';
 const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+console.log('OrdersTable v1.1 Loaded');
 
 interface DownloadToken {
   id: string;
@@ -56,6 +59,8 @@ interface Order {
   customer_country: string | null;
   payment_method: string | null;
   stripe_payment_intent: string | null;
+  stripe_session_id: string | null;
+  stripe_receipt_url: string | null;
   items: OrderItem[];
 }
 
@@ -183,7 +188,7 @@ export default function OrdersTable() {
 
   const SortIcon = ({ columnKey }: { columnKey: string }) => {
     if (sortConfig.key !== columnKey) return <ArrowUpDown className="w-4 h-4 text-zinc-600" />;
-    return sortConfig.direction === 'asc' 
+    return sortConfig.direction === 'asc'
       ? <ArrowUp className="w-4 h-4 text-indigo-400" />
       : <ArrowDown className="w-4 h-4 text-indigo-400" />;
   };
@@ -223,31 +228,85 @@ export default function OrdersTable() {
   };
 
   const getPaymentMethodBadge = (method: string | null) => {
-    if (method === 'paypal') {
+    if (method?.toLowerCase().includes('paypal')) {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-[#0070BA]/10 text-[#0070BA]">
+        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
           PayPal
         </span>
       );
     }
     if (method === 'legacy') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-zinc-800 text-zinc-400">
+        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">
           Legacy
         </span>
       );
     }
-    if (method === 'card' || method === 'stripe') {
+    if (method === 'card' || method === 'stripe' || method === 'stripe_checkout') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-indigo-500/10 text-indigo-400">
+        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
           Stripe
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-zinc-800 text-zinc-500">
+      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-zinc-800 text-zinc-500 border border-zinc-700">
         {method || '-'}
       </span>
+    );
+  };
+
+  const getTransactionLink = (order: Order) => {
+    const method = order.payment_method?.toLowerCase() || '';
+    const id = order.stripe_payment_intent || order.stripe_session_id;
+
+    if (!id) return null;
+
+    if (method.includes('paypal')) {
+      return {
+        url: `https://www.paypal.com/activity/payment/${id}`,
+        label: 'Ver en PayPal',
+        color: 'text-blue-400 hover:text-blue-300',
+        icon: 'paypal'
+      };
+    }
+
+    if (id.startsWith('cs_')) {
+      return {
+        url: `https://dashboard.stripe.com/checkout/sessions/${id}`,
+        label: 'Ver en Stripe Checkout',
+        color: 'text-indigo-400 hover:text-indigo-300',
+        icon: 'stripe'
+      };
+    }
+
+    if (method.includes('stripe') || id.startsWith('pi_') || id.startsWith('ch_')) {
+      return {
+        url: `https://dashboard.stripe.com/payments/${id}`,
+        label: 'Ver en Stripe',
+        color: 'text-indigo-400 hover:text-indigo-300',
+        icon: 'stripe'
+      };
+    }
+
+    return null;
+  };
+
+  const getTransactionLabel = (order: Order) => {
+    const tx = getTransactionLink(order);
+    if (!tx) return null;
+
+    return (
+      <a
+        href={tx.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-bold uppercase transition-all hover:scale-105 active:scale-95 ${tx.color} bg-white/5 border border-current`}
+        title={tx.label}
+      >
+        <ExternalLink className="w-3.5 h-3.5" />
+        {tx.icon}
+      </a>
     );
   };
 
@@ -353,7 +412,7 @@ export default function OrdersTable() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-800">
-                  <th 
+                  <th
                     className="px-6 py-4 text-left text-sm font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors group"
                     onClick={() => handleSort('order_number')}
                   >
@@ -362,7 +421,7 @@ export default function OrdersTable() {
                       <SortIcon columnKey="order_number" />
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-6 py-4 text-left text-sm font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors group"
                     onClick={() => handleSort('customer_name')}
                   >
@@ -371,7 +430,7 @@ export default function OrdersTable() {
                       <SortIcon columnKey="customer_name" />
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-6 py-4 text-left text-sm font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors group"
                     onClick={() => handleSort('payment_method')}
                   >
@@ -380,7 +439,7 @@ export default function OrdersTable() {
                       <SortIcon columnKey="payment_method" />
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-6 py-4 text-left text-sm font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors group"
                     onClick={() => handleSort('items_count')}
                   >
@@ -389,7 +448,7 @@ export default function OrdersTable() {
                       <SortIcon columnKey="items_count" />
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-6 py-4 text-left text-sm font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors group"
                     onClick={() => handleSort('total')}
                   >
@@ -398,7 +457,7 @@ export default function OrdersTable() {
                       <SortIcon columnKey="total" />
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-6 py-4 text-left text-sm font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors group"
                     onClick={() => handleSort('status')}
                   >
@@ -407,7 +466,7 @@ export default function OrdersTable() {
                       <SortIcon columnKey="status" />
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-6 py-4 text-left text-sm font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors group"
                     onClick={() => handleSort('created_at')}
                   >
@@ -462,35 +521,30 @@ export default function OrdersTable() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <a
-                        href={`/admin/orders/${order.id}`}
-                        className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors inline-block"
-                        title="Ver detalle"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </a>
-                      {order.stripe_payment_intent && (order.stripe_payment_intent.startsWith('pi_') || order.stripe_payment_intent.startsWith('ch_')) && (
+                      <div className="flex items-center gap-3">
                         <a
-                          href={`https://dashboard.stripe.com/payments/${order.stripe_payment_intent}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2 text-zinc-400 hover:text-indigo-400 hover:bg-zinc-800 rounded-lg transition-colors inline-block ml-1"
-                          title="Ver en Stripe"
+                          href={`/admin/orders/${order.id}`}
+                          className="flex items-center gap-1 text-zinc-400 hover:text-white transition-colors"
+                          title="Ver detalle del pedido"
                         >
-                          <ExternalLink className="w-4 h-4" />
+                          <Eye className="w-4 h-4" />
+                          <span className="text-xs font-medium">Ver</span>
                         </a>
-                      )}
-                      {order.payment_method === 'paypal' && order.stripe_payment_intent && (
-                        <a
-                          href={`https://www.paypal.com/activity/payment/${order.stripe_payment_intent}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2 text-zinc-400 hover:text-[#0070BA] hover:bg-zinc-800 rounded-lg transition-colors inline-block ml-1"
-                          title="Ver en PayPal"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      )}
+
+                        {getTransactionLabel(order)}
+
+                        {order.stripe_receipt_url && (
+                          <a
+                            href={order.stripe_receipt_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-zinc-500 hover:text-emerald-400 transition-colors"
+                            title="Ver recibo Stripe"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </a>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -504,11 +558,12 @@ export default function OrdersTable() {
             </div>
           )}
         </div>
-      )}
+      )
+      }
 
       <p className="text-sm text-zinc-500">
         Mostrando {filteredOrders.length} de {orders.length} pedidos
       </p>
-    </div>
+    </div >
   );
 }

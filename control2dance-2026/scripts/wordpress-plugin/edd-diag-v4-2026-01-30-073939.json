@@ -1,0 +1,121 @@
+{
+    "tables": [
+        "wp_edd_adjustmentmeta",
+        "wp_edd_adjustments",
+        "wp_edd_customer_addresses",
+        "wp_edd_customer_email_addresses",
+        "wp_edd_customermeta",
+        "wp_edd_customers",
+        "wp_edd_emailmeta",
+        "wp_edd_emails",
+        "wp_edd_license_activations",
+        "wp_edd_licensemeta",
+        "wp_edd_licenses",
+        "wp_edd_logmeta",
+        "wp_edd_logs",
+        "wp_edd_logs_api_requestmeta",
+        "wp_edd_logs_api_requests",
+        "wp_edd_logs_emailmeta",
+        "wp_edd_logs_emails",
+        "wp_edd_logs_file_downloadmeta",
+        "wp_edd_logs_file_downloads",
+        "wp_edd_notemeta",
+        "wp_edd_notes",
+        "wp_edd_notifications",
+        "wp_edd_order_addresses",
+        "wp_edd_order_adjustmentmeta",
+        "wp_edd_order_adjustments",
+        "wp_edd_order_itemmeta",
+        "wp_edd_order_items",
+        "wp_edd_order_transactions",
+        "wp_edd_ordermeta",
+        "wp_edd_orders",
+        "wp_edd_subscriptions"
+    ],
+    "orders_sample": [
+        {
+            "order_number": "840",
+            "payment_method": "stripe_checkout",
+            "transaction_id": null,
+            "status": "complete",
+            "all_metadata": []
+        },
+        {
+            "order_number": "839",
+            "payment_method": "paypal_commerce",
+            "transaction_id": null,
+            "status": "complete",
+            "all_metadata": {
+                "paypal_order_id": "75E301210V475830D"
+            }
+        },
+        {
+            "order_number": "838",
+            "payment_method": "paypal_commerce",
+            "transaction_id": null,
+            "status": "complete",
+            "all_metadata": {
+                "paypal_order_id": "2W884061DU8633619"
+            }
+        },
+        {
+            "order_number": "837",
+            "payment_method": "stripe_checkout",
+            "transaction_id": null,
+            "status": "complete",
+            "all_metadata": []
+        },
+        {
+            "order_number": "836",
+            "payment_method": "paypal_commerce",
+            "transaction_id": null,
+            "status": "complete",
+            "all_metadata": {
+                "paypal_order_id": "68K68922TL611774Y",
+                "unlimited_downloads": "1"
+            }
+        },
+        {
+            "order_number": "835",
+            "payment_method": "paypal_commerce",
+            "transaction_id": null,
+            "status": "complete",
+            "all_metadata": {
+                "paypal_order_id": "1BR98562SH742804J",
+                "unlimited_downloads": "1"
+            }
+        },
+        {
+            "order_number": "834",
+            "payment_method": "manual",
+            "transaction_id": null,
+            "status": "complete",
+            "all_metadata": []
+        },
+        {
+            "order_number": "833",
+            "payment_method": "stripe_checkout",
+            "transaction_id": null,
+            "status": "complete",
+            "all_metadata": {
+                "unlimited_downloads": "1"
+            }
+        },
+        {
+            "order_number": "832",
+            "payment_method": "stripe_checkout",
+            "transaction_id": null,
+            "status": "complete",
+            "all_metadata": []
+        },
+        {
+            "order_number": "831",
+            "payment_method": "paypal_commerce",
+            "transaction_id": null,
+            "status": "complete",
+            "all_metadata": {
+                "paypal_order_id": "1NN815423K846423M"
+            }
+        }
+    ]
+}
