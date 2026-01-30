@@ -12,9 +12,13 @@ import {
   CheckCircle,
   TrendingUp,
   ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   FileText,
   AlertCircle,
-  XCircle
+  XCircle,
+  RefreshCw,
+  ExternalLink
 } from 'lucide-react';
 
 // Cliente sin tipos para evitar errores de TypeScript
@@ -66,6 +70,7 @@ interface OrderStats {
   total: number;
   paid: number;
   pending: number;
+  refunded: number;
   revenue: number;
 }
 
@@ -73,7 +78,7 @@ export default function OrdersTable() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'paid' | 'pending'>('all');
+  const [filter, setFilter] = useState<'all' | 'paid' | 'pending' | 'refunded' | 'failed'>('all');
   const [stats, setStats] = useState<OrderStats | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({
     key: 'created_at',

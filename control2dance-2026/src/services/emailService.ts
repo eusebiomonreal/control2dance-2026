@@ -4,13 +4,15 @@
 
 import { Resend } from 'resend';
 
-const resendApiKey = import.meta.env.RESEND_API_KEY || process.env.RESEND_API_KEY;
-const siteUrl = import.meta.env.PUBLIC_SITE_URL || process.env.PUBLIC_SITE_URL || 'https://dev.control2dance.es';
-const adminEmail = import.meta.env.ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'hola@control2dance.es';
+const resendApiKey = import.meta.env?.RESEND_API_KEY || process.env.RESEND_API_KEY;
+const siteUrl = import.meta.env?.PUBLIC_SITE_URL || process.env.PUBLIC_SITE_URL || 'https://dev.control2dance.es';
+const adminEmail = import.meta.env?.ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'hola@control2dance.es';
 
 interface OrderItem {
+  product_id?: string;
   product_name: string;
   product_catalog_number?: string;
+  product_image?: string;
   price: number;
   quantity: number;
 }
@@ -100,16 +102,36 @@ const vinylSection = `
  * Genera el HTML del email de confirmación para el cliente
  */
 function generateCustomerEmailHtml(data: OrderEmailData): string {
-  const itemsHtml = data.items.map(item => `
+  const itemsHtml = data.items.map(item => {
+    const productUrl = item.product_id ? `${siteUrl}/catalogo/${item.product_id}` : siteUrl;
+    const imageUrl = item.product_image || `${siteUrl}/vinyl-placeholder.png`;
+
+    return `
     <tr>
-      <td style="padding: 10px 0; border-bottom: 1px solid #eee;">
-        <strong style="color: #1a1a1a;">${item.product_name}</strong>
-        ${item.product_catalog_number ? `<br><span style="color: #888; font-size: 12px;">${item.product_catalog_number}</span>` : ''}
+      <td style="padding: 15px 0; border-bottom: 1px solid #eee;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+          <tr>
+            <td width="60" valign="top" style="padding-right: 15px;">
+              <a href="${productUrl}">
+                <img src="${imageUrl}" alt="${item.product_name}" width="60" height="60" style="border-radius: 8px; border: 1px solid #eee; object-fit: cover;" />
+              </a>
+            </td>
+            <td valign="top">
+              <a href="${productUrl}" style="text-decoration: none; color: #1a1a1a;">
+                <strong style="display: block; font-size: 14px; margin-bottom: 4px;">${item.product_name}</strong>
+              </a>
+              ${item.product_catalog_number ? `<span style="color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">${item.product_catalog_number}</span>` : ''}
+              <br>
+              <a href="${productUrl}" style="color: #ff4d7d; font-size: 11px; text-decoration: none; font-weight: 600;">Ver en tienda →</a>
+            </td>
+          </tr>
+        </table>
       </td>
-      <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: center; color: #666;">${item.quantity}</td>
-      <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right; color: #1a1a1a; font-weight: 600;">${formatPrice(item.price)}</td>
+      <td style="padding: 15px 0; border-bottom: 1px solid #eee; text-align: center; color: #666; font-size: 14px;">${item.quantity}</td>
+      <td style="padding: 15px 0; border-bottom: 1px solid #eee; text-align: right; color: #1a1a1a; font-weight: 700; font-size: 14px;">${formatPrice(item.price)}</td>
     </tr>
-  `).join('');
+    `;
+  }).join('');
 
   return `
 <!DOCTYPE html>
@@ -208,16 +230,30 @@ function generateCustomerEmailHtml(data: OrderEmailData): string {
  * Genera el HTML del email de notificación para el admin
  */
 function generateAdminEmailHtml(data: OrderEmailData): string {
-  const itemsHtml = data.items.map(item => `
+  const itemsHtml = data.items.map(item => {
+    const productUrl = item.product_id ? `${siteUrl}/catalogo/${item.product_id}` : siteUrl;
+    const imageUrl = item.product_image || `${siteUrl}/vinyl-placeholder.png`;
+
+    return `
     <tr>
       <td style="padding: 10px 0; border-bottom: 1px solid #eee;">
-        <strong style="color: #1a1a1a;">${item.product_name}</strong>
-        ${item.product_catalog_number ? `<br><span style="color: #888; font-size: 12px;">${item.product_catalog_number}</span>` : ''}
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+          <tr>
+            <td width="40" valign="top" style="padding-right: 12px;">
+              <img src="${imageUrl}" alt="${item.product_name}" width="40" height="40" style="border-radius: 4px; border: 1px solid #eee; object-fit: cover;" />
+            </td>
+            <td valign="top">
+              <strong style="color: #1a1a1a; font-size: 13px;">${item.product_name}</strong>
+              ${item.product_catalog_number ? `<br><span style="color: #888; font-size: 11px;">${item.product_catalog_number}</span>` : ''}
+            </td>
+          </tr>
+        </table>
       </td>
       <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: center; color: #666;">${item.quantity}</td>
       <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right; color: #1a1a1a; font-weight: 600;">${formatPrice(item.price)}</td>
     </tr>
-  `).join('');
+    `;
+  }).join('');
 
   const stripePaymentUrl = data.stripePaymentIntent
     ? `https://dashboard.stripe.com/payments/${data.stripePaymentIntent}`

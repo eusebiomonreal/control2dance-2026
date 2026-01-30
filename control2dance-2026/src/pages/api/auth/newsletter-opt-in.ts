@@ -21,10 +21,25 @@ export const POST: APIRoute = async ({ request }) => {
 
         const userName = name || email.split('@')[0];
 
-        // 1. Notificar al admin por email
+        // 1. Verificar si ya es un suscriptor activo
+        const { data: existingSubscriber } = await supabase
+            .from('newsletter_subscribers')
+            .select('is_active')
+            .eq('email', email)
+            .single();
+
+        if (existingSubscriber?.is_active) {
+            console.log(`Subscriber already active: ${email}. Skipping notification and upsert.`);
+            return new Response(
+                JSON.stringify({ success: true, already_subscribed: true }),
+                { status: 200, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
+
+        // 2. Notificar al admin por email (solo si no estaba suscrito)
         await sendNewsletterAcceptanceNotification({ name: userName, email });
 
-        // 2. Guardar en base de datos para cumplimiento GDPR
+        // 3. Guardar en base de datos para cumplimiento GDPR
         const { error: dbError } = await supabase
             .from('newsletter_subscribers')
             .upsert({
@@ -41,7 +56,6 @@ export const POST: APIRoute = async ({ request }) => {
 
         if (dbError) {
             console.error('Error saving subscriber to DB:', dbError);
-            // No fallamos la request si falla la DB, pero lo logueamos
         }
 
         return new Response(

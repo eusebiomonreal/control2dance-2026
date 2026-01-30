@@ -210,12 +210,36 @@ async function handleCheckoutComplete(session: any) {
   // 5. Enviar emails de confirmación
   const siteUrl = process.env.PUBLIC_SITE_URL || 'https://dev.control2dance.es';
 
+  // Obtener imágenes reales de la base de datos (web) para asegurar consistencia
+  const productIds = lineItems.data
+    .map(item => (item.price?.product as any)?.metadata?.product_id)
+    .filter(Boolean);
+
+  let productImagesMap: Record<string, string> = {};
+
+  if (productIds.length > 0) {
+    const { data: dbProducts } = await (supabase
+      .from('products') as any)
+      .select('id, cover_image')
+      .in('id', productIds);
+
+    if (dbProducts) {
+      productImagesMap = dbProducts.reduce((acc: Record<string, string>, p: any) => {
+        if (p.cover_image) acc[p.id] = p.cover_image;
+        return acc;
+      }, {});
+    }
+  }
+
   // Preparar datos de los items para el email
   const orderItems = lineItems.data.map(item => {
     const product = item.price?.product as any;
+    const prodId = product?.metadata?.product_id;
     return {
+      product_id: prodId || null,
       product_name: item.description || product?.name || 'Producto',
       product_catalog_number: product?.description || null,
+      product_image: (prodId ? productImagesMap[prodId] : null) || product?.images?.[0] || null,
       price: (item.amount_total || 0) / 100,
       quantity: item.quantity || 1
     };

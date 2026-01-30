@@ -7,7 +7,7 @@ if (!stripeSecretKey) {
   console.warn('STRIPE_SECRET_KEY not configured. Payment features will not work.');
 }
 
-export const stripe = new Stripe(stripeSecretKey || 'sk_test_placeholder', {
+export const stripe = new Stripe(stripeSecretKey || '', {
   apiVersion: '2025-12-15.clover'
 });
 
