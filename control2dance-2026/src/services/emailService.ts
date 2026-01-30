@@ -104,7 +104,8 @@ const vinylSection = `
 function generateCustomerEmailHtml(data: OrderEmailData): string {
   const itemsHtml = data.items.map(item => {
     const productUrl = item.product_id ? `${siteUrl}/catalogo/${item.product_id}` : siteUrl;
-    const imageUrl = item.product_image || `${siteUrl}/vinyl-placeholder.png`;
+    // Usamos el logo como placeholder si no hay imagen (el anterior no existía)
+    const imageUrl = item.product_image || `${siteUrl}/email-templates/logo.png`;
 
     return `
     <tr>
@@ -232,7 +233,8 @@ function generateCustomerEmailHtml(data: OrderEmailData): string {
 function generateAdminEmailHtml(data: OrderEmailData): string {
   const itemsHtml = data.items.map(item => {
     const productUrl = item.product_id ? `${siteUrl}/catalogo/${item.product_id}` : siteUrl;
-    const imageUrl = item.product_image || `${siteUrl}/vinyl-placeholder.png`;
+    // Usamos el logo como placeholder si no hay imagen (el anterior no existía)
+    const imageUrl = item.product_image || `${siteUrl}/email-templates/logo.png`;
 
     return `
     <tr>
@@ -381,6 +383,8 @@ export async function sendCustomerOrderEmail(data: OrderEmailData): Promise<bool
     const resend = new Resend(resendApiKey);
     const html = generateCustomerEmailHtml(data);
 
+    console.log('📧 Preparando envío de email CUSTOMER para pedido:', data.orderId);
+
     const result = await resend.emails.send({
       from: 'Control2Dance <noreply@control2dance.es>',
       to: data.customerEmail,
@@ -414,6 +418,8 @@ export async function sendAdminOrderEmail(data: OrderEmailData): Promise<boolean
     const resend = new Resend(resendApiKey);
     const html = generateAdminEmailHtml(data);
 
+    console.log('📧 Preparando envío de email ADMIN para pedido:', data.orderId);
+
     const result = await resend.emails.send({
       from: 'Control2Dance <noreply@control2dance.es>',
       to: adminEmail,
@@ -433,8 +439,6 @@ export async function sendAdminOrderEmail(data: OrderEmailData): Promise<boolean
     return false;
   }
 }
-
-// ... existing code ...
 
 /**
  * Notificar al admin sobre aceptación de términos de newsletter
@@ -487,6 +491,8 @@ export async function sendNewsletterAcceptanceNotification(userData: { name: str
  * Envía ambos emails (cliente y admin)
  */
 export async function sendOrderEmails(data: OrderEmailData): Promise<{ customer: boolean; admin: boolean }> {
+  console.log('🚀 sendOrderEmails CALLED [Version: RICH-TEMPLATES-V2] for Order:', data.orderId);
+
   const [customer, admin] = await Promise.all([
     sendCustomerOrderEmail(data),
     sendAdminOrderEmail(data)

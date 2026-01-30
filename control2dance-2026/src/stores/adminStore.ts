@@ -116,16 +116,16 @@ export async function loadAdminStats(startDate?: string, endDate?: string): Prom
     if (startDate) ordersQuery = (ordersQuery as any).gte('created_at', startDate);
     if (endDate) ordersQuery = (ordersQuery as any).lte('created_at', endDate);
 
-    const { data: ordersData, count: totalOrders } = await (ordersQuery as any).order('created_at', { ascending: false });
+    const { data: ordersData, count: dbTotalOrders } = await (ordersQuery as any).order('created_at', { ascending: false });
 
-    const totalOrders = (ordersData as any[] || []).filter(o => o.status === 'paid').length;
+    const totalPaidOrders = (ordersData as any[] || []).filter(o => o.status === 'paid').length;
     const refundedOrders = (ordersData as any[] || []).filter(o => o.status === 'refunded' || o.status === 'partially_refunded').length;
     const totalRevenue = (ordersData as any[] || []).filter(o => o.status === 'paid').reduce((sum, order) => sum + (order.total || 0), 0);
 
     const newStats: AdminStats = {
       totalProducts: totalProducts || 0,
       activeProducts: activeProducts || 0,
-      totalOrders: totalOrders,
+      totalOrders: totalPaidOrders,
       totalRevenue,
       refundedOrders
     };

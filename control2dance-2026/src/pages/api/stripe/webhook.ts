@@ -218,14 +218,18 @@ async function handleCheckoutComplete(session: any) {
   let productImagesMap: Record<string, string> = {};
 
   if (productIds.length > 0) {
+    // Buscamos por ID o por Slug para ser robustos
     const { data: dbProducts } = await (supabase
       .from('products') as any)
-      .select('id, cover_image')
-      .in('id', productIds);
+      .select('id, slug, cover_image')
+      .or(`id.in.(${productIds.join(',')}),slug.in.(${productIds.join(',')})`);
 
     if (dbProducts) {
       productImagesMap = dbProducts.reduce((acc: Record<string, string>, p: any) => {
-        if (p.cover_image) acc[p.id] = p.cover_image;
+        if (p.cover_image) {
+          acc[p.id] = p.cover_image;
+          acc[p.slug] = p.cover_image; // Mapeamos ambos para el lookup
+        }
         return acc;
       }, {});
     }
@@ -315,21 +319,19 @@ async function createGuestAccount(
 async function handleRefund(charge: any) {
   const supabase = createServerClient();
   const paymentIntentId = charge.payment_intent;
+  const chargeId = charge.id;
 
-  if (!paymentIntentId) {
-    console.log('ℹ️ No payment intent in charge, ignoring refund');
-    return;
-  }
+  console.log(`💸 handleRefund processing: PI=${paymentIntentId}, CH=${chargeId}`);
 
-  // 1. Buscar la orden asociada al Payment Intent
+  // 1. Buscar la orden asociada. Muy robusto: buscamos por PI o CH en ambos campos posibles
   const { data: order, error: findError } = await (supabase
     .from('orders') as any)
-    .select('id, status')
-    .eq('stripe_payment_intent', paymentIntentId)
-    .single();
+    .select('id, status, stripe_payment_intent, stripe_session_id')
+    .or(`stripe_payment_intent.eq.${paymentIntentId},stripe_payment_intent.eq.${chargeId},stripe_session_id.eq.${paymentIntentId},stripe_session_id.eq.${chargeId}`)
+    .maybeSingle();
 
   if (findError || !order) {
-    console.log('ℹ️ Order not found for this payment intent, it might be from another app (WordPress).');
+    console.log(`ℹ️ Order not found for PI=${paymentIntentId} or CH=${chargeId}. Skipping.`);
     return;
   }
 

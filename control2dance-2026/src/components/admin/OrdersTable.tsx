@@ -63,6 +63,7 @@ interface Order {
   stripe_payment_intent: string | null;
   stripe_session_id: string | null;
   stripe_receipt_url: string | null;
+  payment_status: string | null;
   items: OrderItem[];
 }
 
@@ -113,8 +114,13 @@ export default function OrdersTable() {
       setOrders(data || []);
 
       const allOrders = data || [];
-      const paidOrders = allOrders.filter(o => o.status === 'paid');
-      const refundedOrders = allOrders.filter(o => o.status === 'refunded' || o.status === 'partially_refunded');
+      const paidOrders = allOrders.filter(o => o.status === 'paid' || o.payment_status === 'paid');
+      const refundedOrders = allOrders.filter(o =>
+        o.status === 'refunded' ||
+        o.status === 'partially_refunded' ||
+        o.payment_status === 'refunded' ||
+        o.payment_status === 'partially_refunded'
+      );
 
       setStats({
         total: allOrders.length,
@@ -218,43 +224,33 @@ export default function OrdersTable() {
     }).format(amount);
   };
 
-  const getStatusBadge = (status: string) => {
-    if (status === 'paid') {
+  const getStatusBadge = (status: string, payment_status: string | null) => {
+    // Fallback al payment_status si status es un valor de importación (como 'publish' o 'completed')
+    const currentStatus = (status === 'pending' || !['paid', 'refunded', 'partially_refunded', 'failed'].includes(status))
+      ? (payment_status || status)
+      : status;
+
+    if (currentStatus === 'paid' || currentStatus === 'publish' || currentStatus === 'completed') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-400">
-          <CheckCircle className="w-3 h-3" />
-          Pagado
-        </span>
+        <span className="text-emerald-400 font-medium">Pagado</span>
       );
     }
-    if (status === 'refunded') {
+
+    if (currentStatus === 'refunded') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
-          <RefreshCw className="w-3 h-3" />
-          Reembolsado
-        </span>
+        <span className="text-red-400 font-medium">Reembolsado</span>
       );
     }
-    if (status === 'partially_refunded') {
+
+    if (currentStatus === 'partially_refunded') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20">
-          <RefreshCw className="w-3 h-3" />
-          Reemb. Parcial
-        </span>
+        <span className="text-amber-500 font-medium">Reemb. Parcial</span>
       );
     }
-    if (status === 'failed') {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-500/10 text-red-500 border border-red-500/20">
-          <XCircle className="w-3 h-3" />
-          Fallado
-        </span>
-      );
-    }
+
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-zinc-800 text-zinc-400">
-        <Clock className="w-3 h-3" />
-        {status === 'pending' ? 'Pendiente' : status}
+      <span className="text-zinc-400">
+        {currentStatus === 'pending' ? 'Pendiente' : currentStatus}
       </span>
     );
   };
@@ -559,7 +555,7 @@ export default function OrdersTable() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      {getStatusBadge(order.status)}
+                      {getStatusBadge(order.status, order.payment_status)}
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-zinc-400">
@@ -604,12 +600,11 @@ export default function OrdersTable() {
             </div>
           )}
         </div>
-      )
-      }
+      )}
 
       <p className="text-sm text-zinc-500">
         Mostrando {filteredOrders.length} de {orders.length} pedidos
       </p>
-    </div >
+    </div>
   );
 }
