@@ -219,10 +219,26 @@ export default function OrdersTable() {
         </span>
       );
     }
+    if (status === 'refunded') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+          <RefreshCw className="w-3 h-3" />
+          Reembolsado
+        </span>
+      );
+    }
+    if (status === 'partially_refunded') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20">
+          <RefreshCw className="w-3 h-3" />
+          Reemb. Parcial
+        </span>
+      );
+    }
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-amber-500/10 text-amber-400">
+      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-zinc-800 text-zinc-400">
         <Clock className="w-3 h-3" />
-        Pendiente
+        {status === 'pending' ? 'Pendiente' : status}
       </span>
     );
   };

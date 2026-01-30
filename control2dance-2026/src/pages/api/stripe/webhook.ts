@@ -54,8 +54,16 @@ export const POST: APIRoute = async ({ request }) => {
       console.log('✅ Checkout processed successfully');
     } catch (error) {
       console.error('❌ Error processing checkout:', error);
-      // Devolver 200 para evitar reintentos innecesarios de Stripe
-      // pero loggear el error para investigación
+    }
+  } else if (event.type === 'charge.refunded') {
+    const charge = event.data.object;
+    console.log('💸 Processing refund for charge:', charge.id);
+
+    try {
+      await handleRefund(charge);
+      console.log('✅ Refund processed successfully');
+    } catch (error) {
+      console.error('❌ Error processing refund:', error);
     }
   }
 
@@ -275,4 +283,61 @@ async function createGuestAccount(
 
   console.log(`✉️ Invitation sent to: ${email}`);
   return data.user.id;
+}
+
+/**
+ * Maneja el evento de reembolso desde Stripe
+ */
+async function handleRefund(charge: any) {
+  const supabase = createServerClient();
+  const paymentIntentId = charge.payment_intent;
+
+  if (!paymentIntentId) {
+    console.log('ℹ️ No payment intent in charge, ignoring refund');
+    return;
+  }
+
+  // 1. Buscar la orden asociada al Payment Intent
+  const { data: order, error: findError } = await (supabase
+    .from('orders') as any)
+    .select('id, status')
+    .eq('stripe_payment_intent', paymentIntentId)
+    .single();
+
+  if (findError || !order) {
+    console.log('ℹ️ Order not found for this payment intent, it might be from another app (WordPress).');
+    return;
+  }
+
+  // 2. Determinar el nuevo estado
+  let newStatus = 'partially_refunded';
+  if (charge.refunded === true) {
+    newStatus = 'refunded';
+  }
+
+  console.log(`🔄 Updating order ${order.id} status to: ${newStatus}`);
+
+  // 3. Actualizar la orden
+  await (supabase
+    .from('orders') as any)
+    .update({ status: newStatus })
+    .eq('id', order.id);
+
+  // 4. Si es reembolso total, desactivar tokens de descarga
+  if (newStatus === 'refunded') {
+    const { data: items } = await (supabase
+      .from('order_items') as any)
+      .select('id')
+      .eq('order_id', order.id);
+
+    if (items && items.length > 0) {
+      const itemIds = items.map((i: any) => i.id);
+      await (supabase
+        .from('download_tokens') as any)
+        .update({ is_active: false })
+        .in('order_item_id', itemIds);
+
+      console.log(`🔒 Deactivated download tokens for order: ${order.id}`);
+    }
+  }
 }
