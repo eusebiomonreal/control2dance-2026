@@ -3,6 +3,7 @@ import { constructWebhookEvent, stripe } from '../../../lib/stripe';
 import { createServerClient } from '../../../lib/supabase';
 import { nanoid } from 'nanoid';
 import { sendOrderEmails } from '../../../services/emailService';
+import { processNewsletterSubscription } from '../../../services/newsletterService';
 
 // Desactivar verificación de origen para webhooks externos
 export const prerender = false;
@@ -29,7 +30,7 @@ export const POST: APIRoute = async ({ request }) => {
   } catch (err) {
     console.error('❌ Webhook signature verification failed:', err);
     return new Response(
-      `Webhook Error: ${err instanceof Error ? err.message : 'Unknown error'}`,
+      `Webhook Error: ${err instanceof Error ? err.message : 'Unknown error'} `,
       { status: 400 }
     );
   }
@@ -180,7 +181,26 @@ async function handleCheckoutComplete(session: any) {
     }
   }
 
-  // 4. Si es compra de invitado (sin user_id), crear cuenta automáticamente
+  console.log(`✅[Webhook] Order items created for order ${order.id}`);
+
+  // 4. Procesar suscripción a newsletter si el usuario dio su consentimiento
+  if (session.metadata?.newsletter === 'true') {
+    const customerEmail = session.customer_details?.email || session.customer_email;
+    const customerName = session.customer_details?.name;
+
+    if (customerEmail) {
+      console.log(`📧[Webhook] Processing newsletter subscription for ${customerEmail}`);
+      // No esperamos (await) para no retrasar la respuesta del webhook, 
+      // pero el servicio ya maneja errores internamente.
+      processNewsletterSubscription({
+        email: customerEmail,
+        name: customerName || undefined,
+        source: 'checkout_success'
+      }).catch(err => console.error('❌ [Webhook] Newsletter subscription error:', err));
+    }
+  }
+
+  // 5. Si es compra de invitado (sin user_id), crear cuenta automáticamente
   const customerEmail = session.customer_email || session.customer_details?.email;
 
   if (!userId && customerEmail) {
@@ -200,14 +220,14 @@ async function handleCheckoutComplete(session: any) {
           .update({ user_id: newUserId })
           .eq('order_item_id', order.id);
 
-        console.log(`✅ Guest account created and linked: ${customerEmail}`);
+        console.log(`✅ Guest account created and linked: ${customerEmail} `);
       }
     } catch (e) {
       console.log('ℹ️ Could not create guest account (may already exist):', e);
     }
   }
 
-  // 5. Enviar emails de confirmación
+  // 6. Enviar emails de confirmación
   const siteUrl = process.env.PUBLIC_SITE_URL || 'https://dev.control2dance.es';
 
   // Obtener imágenes reales de la base de datos (web) para asegurar consistencia
@@ -222,7 +242,7 @@ async function handleCheckoutComplete(session: any) {
     const { data: dbProducts } = await (supabase
       .from('products') as any)
       .select('id, slug, cover_image')
-      .or(`id.in.(${productIds.join(',')}),slug.in.(${productIds.join(',')})`);
+      .or(`id.in.(${productIds.join(',')}), slug.in.(${productIds.join(',')})`);
 
     if (dbProducts) {
       productImagesMap = dbProducts.reduce((acc: Record<string, string>, p: any) => {
@@ -260,7 +280,7 @@ async function handleCheckoutComplete(session: any) {
       stripeSessionId: session.id,
       stripePaymentIntent: session.payment_intent,
       receiptUrl: receiptUrl,
-      downloadUrl: `${siteUrl}/dashboard/downloads`
+      downloadUrl: `${siteUrl} /dashboard/downloads`
     });
 
     if (emailResult.customer) {
@@ -291,7 +311,7 @@ async function createGuestAccount(
   const existingUser = existingUsers?.users?.find(u => u.email === email);
 
   if (existingUser) {
-    console.log(`User already exists: ${email}`);
+    console.log(`User already exists: ${email} `);
     return existingUser.id;
   }
 
@@ -301,7 +321,7 @@ async function createGuestAccount(
       name: name || email.split('@')[0],
       created_via: 'guest_checkout'
     },
-    redirectTo: `${process.env.PUBLIC_SITE_URL || 'https://dev.control2dance.es'}/auth/set-password`
+    redirectTo: `${process.env.PUBLIC_SITE_URL || 'https://dev.control2dance.es'} /auth/set-password`
   });
 
   if (error) {
@@ -309,7 +329,7 @@ async function createGuestAccount(
     return null;
   }
 
-  console.log(`✉️ Invitation sent to: ${email}`);
+  console.log(`✉️ Invitation sent to: ${email} `);
   return data.user.id;
 }
 
@@ -321,17 +341,17 @@ async function handleRefund(charge: any) {
   const paymentIntentId = charge.payment_intent;
   const chargeId = charge.id;
 
-  console.log(`💸 handleRefund processing: PI=${paymentIntentId}, CH=${chargeId}`);
+  console.log(`💸 handleRefund processing: PI = ${paymentIntentId}, CH = ${chargeId} `);
 
   // 1. Buscar la orden asociada. Muy robusto: buscamos por PI o CH en ambos campos posibles
   const { data: order, error: findError } = await (supabase
     .from('orders') as any)
     .select('id, status, stripe_payment_intent, stripe_session_id')
-    .or(`stripe_payment_intent.eq.${paymentIntentId},stripe_payment_intent.eq.${chargeId},stripe_session_id.eq.${paymentIntentId},stripe_session_id.eq.${chargeId}`)
+    .or(`stripe_payment_intent.eq.${paymentIntentId}, stripe_payment_intent.eq.${chargeId}, stripe_session_id.eq.${paymentIntentId}, stripe_session_id.eq.${chargeId} `)
     .maybeSingle();
 
   if (findError || !order) {
-    console.log(`ℹ️ Order not found for PI=${paymentIntentId} or CH=${chargeId}. Skipping.`);
+    console.log(`ℹ️ Order not found for PI = ${paymentIntentId} or CH = ${chargeId}.Skipping.`);
     return;
   }
 
@@ -341,7 +361,7 @@ async function handleRefund(charge: any) {
     newStatus = 'refunded';
   }
 
-  console.log(`🔄 Updating order ${order.id} status to: ${newStatus}`);
+  console.log(`🔄 Updating order ${order.id} status to: ${newStatus} `);
 
   // 3. Actualizar la orden
   await (supabase
@@ -363,7 +383,7 @@ async function handleRefund(charge: any) {
         .update({ is_active: false })
         .in('order_item_id', itemIds);
 
-      console.log(`🔒 Deactivated download tokens for order: ${order.id}`);
+      console.log(`🔒 Deactivated download tokens for order: ${order.id} `);
     }
   }
 }

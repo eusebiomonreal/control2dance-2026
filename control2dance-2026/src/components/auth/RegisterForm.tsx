@@ -8,7 +8,7 @@ export default function RegisterForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [newsletterAccepted, setNewsletterAccepted] = useState(true);
+  const [newsletterAccepted, setNewsletterAccepted] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const loading = useStore($authLoading);

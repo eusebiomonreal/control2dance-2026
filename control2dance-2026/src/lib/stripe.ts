@@ -25,7 +25,8 @@ export async function createCheckoutSession(
   customerEmail: string,
   successUrl: string,
   cancelUrl: string,
-  userId?: string
+  userId?: string,
+  newsletterOptIn?: boolean
 ) {
   const baseUrl = process.env.PUBLIC_SITE_URL || import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4321';
 
@@ -63,7 +64,8 @@ export async function createCheckoutSession(
     metadata: {
       app: 'c2d-2026',
       product_ids: items.map(i => i.id).join(','),
-      user_id: userId || ''
+      user_id: userId || '',
+      newsletter: newsletterOptIn ? 'true' : 'false'
     }
   });
 

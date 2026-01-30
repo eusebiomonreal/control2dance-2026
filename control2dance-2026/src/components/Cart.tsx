@@ -10,7 +10,7 @@ export default function Cart() {
   const isAuthenticated = useStore($isAuthenticated);
 
   const [email, setEmail] = useState('');
-  const [newsletterAccepted, setNewsletterAccepted] = useState(true);
+  const [newsletterAccepted, setNewsletterAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,18 +52,10 @@ export default function Cart() {
             catalogNumber: item.catalogNumber
           })),
           customerEmail: email,
-          userId: user?.id
+          userId: user?.id,
+          newsletterOptIn: newsletterAccepted
         })
       });
-
-      // Handle newsletter opt-in (non-blocking)
-      if (newsletterAccepted) {
-        fetch('/api/auth/newsletter-opt-in', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email }) // name is optional/derived
-        }).catch(err => console.error('Error sending newsletter opt-in:', err));
-      }
 
       const data = await response.json();
 
