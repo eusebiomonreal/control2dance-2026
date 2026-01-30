@@ -56,11 +56,21 @@ export const GET: APIRoute = async ({ request }) => {
       limit: 100,
     });
 
+    // Obtener reembolsos en el periodo
+    const refunds = await stripe.refunds.list({
+      created: {
+        gte: gteTimestamp,
+        lte: lteTimestamp
+      },
+      limit: 100
+    });
+
     // Filtrar solo los pagados
     const paidSessions = sessions.data.filter(s => s.payment_status === 'paid');
 
     // Calcular totales de Stripe
     const stripeTotal = paidSessions.reduce((sum, s) => sum + (s.amount_total || 0), 0) / 100;
+    const stripeRefunded = refunds.data.reduce((sum, r) => sum + r.amount, 0) / 100;
 
     // Obtener totales de Supabase
     const { data: orders, error } = await supabase
@@ -91,7 +101,7 @@ export const GET: APIRoute = async ({ request }) => {
         available: availableBalance,
         pending: pendingBalance,
         last30Days: stripeTotal,
-        refunded30Days: 0,
+        refunded30Days: stripeRefunded,
         charges30Days: stripeSessionCount,
         currency: balance.available[0]?.currency?.toUpperCase() || 'EUR'
       },

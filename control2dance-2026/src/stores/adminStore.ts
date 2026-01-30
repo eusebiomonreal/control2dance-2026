@@ -16,6 +16,7 @@ export interface AdminStats {
   activeProducts: number;
   totalOrders: number;
   totalRevenue: number;
+  refundedOrders: number;
 }
 
 export interface AdminOrder {
@@ -106,24 +107,27 @@ export async function loadAdminStats(startDate?: string, endDate?: string): Prom
       .select('*', { count: 'exact', head: true })
       .eq('is_active', true);
 
-    // Consulta base de órdenes
+    // Consulta base de órdenes (ahora incluye reembolsos para estadísticas)
     let ordersQuery = supabase
       .from('orders' as any)
       .select('id, order_number, customer_name, customer_email, total, status, created_at, payment_method, stripe_receipt_url, stripe_payment_intent, stripe_session_id', { count: 'exact' })
-      .eq('status', 'paid');
+      .in('status', ['paid', 'refunded', 'partially_refunded']);
 
     if (startDate) ordersQuery = (ordersQuery as any).gte('created_at', startDate);
     if (endDate) ordersQuery = (ordersQuery as any).lte('created_at', endDate);
 
     const { data: ordersData, count: totalOrders } = await (ordersQuery as any).order('created_at', { ascending: false });
 
-    const totalRevenue = (ordersData as any[] || []).reduce((sum, order) => sum + (order.total || 0), 0);
+    const totalOrders = (ordersData as any[] || []).filter(o => o.status === 'paid').length;
+    const refundedOrders = (ordersData as any[] || []).filter(o => o.status === 'refunded' || o.status === 'partially_refunded').length;
+    const totalRevenue = (ordersData as any[] || []).filter(o => o.status === 'paid').reduce((sum, order) => sum + (order.total || 0), 0);
 
     const newStats: AdminStats = {
       totalProducts: totalProducts || 0,
       activeProducts: activeProducts || 0,
-      totalOrders: totalOrders || 0,
-      totalRevenue
+      totalOrders: totalOrders,
+      totalRevenue,
+      refundedOrders
     };
 
     if (startDate || endDate) {

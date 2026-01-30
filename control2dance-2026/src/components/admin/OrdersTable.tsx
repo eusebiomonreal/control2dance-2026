@@ -11,12 +11,10 @@ import {
   Clock,
   CheckCircle,
   TrendingUp,
-  RefreshCw,
-  ExternalLink,
-  ArrowUpDown,
-  ArrowUp,
   ArrowDown,
-  FileText
+  FileText,
+  AlertCircle,
+  XCircle
 } from 'lucide-react';
 
 // Cliente sin tipos para evitar errores de TypeScript
@@ -111,10 +109,13 @@ export default function OrdersTable() {
 
       const allOrders = data || [];
       const paidOrders = allOrders.filter(o => o.status === 'paid');
+      const refundedOrders = allOrders.filter(o => o.status === 'refunded' || o.status === 'partially_refunded');
+
       setStats({
         total: allOrders.length,
         paid: paidOrders.length,
-        pending: allOrders.length - paidOrders.length,
+        pending: allOrders.filter(o => o.status === 'pending').length,
+        refunded: refundedOrders.length,
         revenue: paidOrders.reduce((sum, o) => sum + (o.total || 0), 0)
       });
     }
@@ -135,7 +136,9 @@ export default function OrdersTable() {
     const matchesFilter =
       filter === 'all' ||
       (filter === 'paid' && order.status === 'paid') ||
-      (filter === 'pending' && order.status !== 'paid');
+      (filter === 'pending' && order.status === 'pending') ||
+      (filter === 'refunded' && (order.status === 'refunded' || order.status === 'partially_refunded')) ||
+      (filter === 'failed' && order.status === 'failed');
 
     return matchesSearch && matchesFilter;
   });
@@ -232,6 +235,14 @@ export default function OrdersTable() {
         <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20">
           <RefreshCw className="w-3 h-3" />
           Reemb. Parcial
+        </span>
+      );
+    }
+    if (status === 'failed') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-500/10 text-red-500 border border-red-500/20">
+          <XCircle className="w-3 h-3" />
+          Fallado
         </span>
       );
     }
@@ -362,7 +373,19 @@ export default function OrdersTable() {
               </div>
               <div>
                 <p className="text-sm text-zinc-400">Pendientes</p>
-                <p className="text-xl font-bold text-white">{stats.pending}</p>
+                <p className="text-xl font-bold text-white">{(stats as any).pending || 0}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-500/10 rounded-lg flex items-center justify-center">
+                <RefreshCw className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <p className="text-sm text-zinc-400">Reembolsos</p>
+                <p className="text-xl font-bold text-white">{(stats as any).refunded || 0}</p>
               </div>
             </div>
           </div>
@@ -403,6 +426,8 @@ export default function OrdersTable() {
             <option value="all">Todos</option>
             <option value="paid">Pagados</option>
             <option value="pending">Pendientes</option>
+            <option value="refunded">Reembolsados</option>
+            <option value="failed">Fallidos</option>
           </select>
 
           <button

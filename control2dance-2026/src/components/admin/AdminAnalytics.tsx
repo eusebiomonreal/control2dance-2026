@@ -367,6 +367,10 @@ export default function AdminAnalytics() {
                                     <p className="text-xl font-black text-white">{stripeBalance.stripe.charges30Days}</p>
                                 </div>
                                 <div className="bg-zinc-950 border border-zinc-800 p-6 rounded-2xl">
+                                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Reembolsado</p>
+                                    <p className="text-xl font-black text-red-400">{formatCurrency(stripeBalance.stripe.refunded30Days)}</p>
+                                </div>
+                                <div className="bg-zinc-950 border border-zinc-800 p-6 rounded-2xl">
                                     <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Moneda</p>
                                     <p className="text-xl font-black text-zinc-400">{stripeBalance.stripe.currency}</p>
                                 </div>
