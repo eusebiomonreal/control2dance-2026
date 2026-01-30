@@ -434,25 +434,44 @@ export default function OrderDetail({ orderId }: Props) {
                 <p className="text-white">{order.paid_at ? formatDate(order.paid_at) : '-'}</p>
               </div>
             </div>
-            {order.stripe_payment_intent && (
+            {(order.payment_method || order.stripe_payment_intent) && (
               <div className="flex items-center gap-3">
                 <CreditCard className="w-5 h-5 text-zinc-500" />
                 <div>
                   <p className="text-sm text-zinc-400">Pago</p>
                   <div className="flex items-center gap-2">
                     {order.payment_method && (
-                      <span className="text-xs px-2 py-0.5 bg-zinc-800 text-zinc-300 rounded uppercase">
+                      <span className={`text-xs px-2 py-0.5 rounded uppercase font-medium ${
+                        order.payment_method === 'paypal' 
+                          ? 'bg-[#0070BA]/10 text-[#0070BA]' // PayPal Blue
+                          : 'bg-zinc-800 text-zinc-300'
+                      }`}>
                         {order.payment_method}
                       </span>
                     )}
-                    <a 
-                      href={`https://dashboard.stripe.com/payments/${order.stripe_payment_intent}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-1"
-                    >
-                      Dashboard <ExternalLink className="w-3 h-3" />
-                    </a>
+                    {order.payment_method === 'paypal' && order.stripe_payment_intent ? (
+                      <a 
+                        href={`https://www.paypal.com/activity/payment/${order.stripe_payment_intent}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#0070BA] hover:text-[#005ea6] text-sm flex items-center gap-1"
+                      >
+                        PayPal <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : order.stripe_payment_intent && (order.stripe_payment_intent.startsWith('pi_') || order.stripe_payment_intent.startsWith('ch_')) ? (
+                      <a 
+                        href={`https://dashboard.stripe.com/payments/${order.stripe_payment_intent}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-1"
+                      >
+                        Dashboard <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : order.stripe_payment_intent ? (
+                      <span className="text-xs text-zinc-500 font-mono" title="ID de Transacción">
+                        {order.stripe_payment_intent.substring(0, 12)}...
+                      </span>
+                    ) : null}
                     {order.stripe_receipt_url && (
                       <a 
                         href={order.stripe_receipt_url}

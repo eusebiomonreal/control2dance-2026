@@ -12,7 +12,10 @@ import {
   CheckCircle,
   TrendingUp,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 
 // Cliente sin tipos para evitar errores de TypeScript
@@ -69,6 +72,10 @@ export default function OrdersTable() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'paid' | 'pending'>('all');
   const [stats, setStats] = useState<OrderStats | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({
+    key: 'created_at',
+    direction: 'desc'
+  });
 
   useEffect(() => {
     loadOrders();
@@ -128,6 +135,59 @@ export default function OrdersTable() {
     return matchesSearch && matchesFilter;
   });
 
+  const sortedOrders = [...filteredOrders].sort((a, b) => {
+    const { key, direction } = sortConfig;
+    let aValue: any;
+    let bValue: any;
+
+    switch (key) {
+      case 'items_count':
+        aValue = a.items?.length || 0;
+        bValue = b.items?.length || 0;
+        break;
+      case 'customer_name':
+        aValue = (a.customer_name || '').toLowerCase();
+        bValue = (b.customer_name || '').toLowerCase();
+        break;
+      case 'order_number':
+        // Fallback to ID if order_number is null, though ID is string so handled carefully
+        aValue = a.order_number || 0;
+        bValue = b.order_number || 0;
+        break;
+      case 'payment_method':
+        aValue = (a.payment_method || '').toLowerCase();
+        bValue = (b.payment_method || '').toLowerCase();
+        break;
+      case 'status':
+        aValue = (a.status || '').toLowerCase();
+        bValue = (b.status || '').toLowerCase();
+        break;
+      default:
+        // @ts-ignore
+        aValue = a[key];
+        // @ts-ignore
+        bValue = b[key];
+    }
+
+    if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const handleSort = (key: string) => {
+    setSortConfig((current) => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const SortIcon = ({ columnKey }: { columnKey: string }) => {
+    if (sortConfig.key !== columnKey) return <ArrowUpDown className="w-4 h-4 text-zinc-600" />;
+    return sortConfig.direction === 'asc' 
+      ? <ArrowUp className="w-4 h-4 text-indigo-400" />
+      : <ArrowDown className="w-4 h-4 text-indigo-400" />;
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
       day: '2-digit',
@@ -158,6 +218,35 @@ export default function OrdersTable() {
       <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-amber-500/10 text-amber-400">
         <Clock className="w-3 h-3" />
         Pendiente
+      </span>
+    );
+  };
+
+  const getPaymentMethodBadge = (method: string | null) => {
+    if (method === 'paypal') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-[#0070BA]/10 text-[#0070BA]">
+          PayPal
+        </span>
+      );
+    }
+    if (method === 'legacy') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-zinc-800 text-zinc-400">
+          Legacy
+        </span>
+      );
+    }
+    if (method === 'card' || method === 'stripe') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-indigo-500/10 text-indigo-400">
+          Stripe
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-zinc-800 text-zinc-500">
+        {method || '-'}
       </span>
     );
   };
@@ -264,17 +353,74 @@ export default function OrdersTable() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-800">
-                  <th className="px-6 py-4 text-left text-sm font-medium text-zinc-400">Pedido</th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-zinc-400">Cliente</th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-zinc-400">Productos</th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-zinc-400">Total</th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-zinc-400">Estado</th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-zinc-400">Fecha</th>
+                  <th 
+                    className="px-6 py-4 text-left text-sm font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors group"
+                    onClick={() => handleSort('order_number')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Pedido
+                      <SortIcon columnKey="order_number" />
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-4 text-left text-sm font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors group"
+                    onClick={() => handleSort('customer_name')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Cliente
+                      <SortIcon columnKey="customer_name" />
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-4 text-left text-sm font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors group"
+                    onClick={() => handleSort('payment_method')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Método
+                      <SortIcon columnKey="payment_method" />
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-4 text-left text-sm font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors group"
+                    onClick={() => handleSort('items_count')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Productos
+                      <SortIcon columnKey="items_count" />
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-4 text-left text-sm font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors group"
+                    onClick={() => handleSort('total')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Total
+                      <SortIcon columnKey="total" />
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-4 text-left text-sm font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors group"
+                    onClick={() => handleSort('status')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Estado
+                      <SortIcon columnKey="status" />
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-4 text-left text-sm font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors group"
+                    onClick={() => handleSort('created_at')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Fecha
+                      <SortIcon columnKey="created_at" />
+                    </div>
+                  </th>
                   <th className="px-6 py-4 text-left text-sm font-medium text-zinc-400">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
-                {filteredOrders.map((order) => (
+                {sortedOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-zinc-800/50">
                     <td className="px-6 py-4">
                       <span className="text-sm font-bold text-white">
@@ -293,6 +439,9 @@ export default function OrdersTable() {
                           )}
                         </p>
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {getPaymentMethodBadge(order.payment_method)}
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-zinc-400">
@@ -320,13 +469,24 @@ export default function OrdersTable() {
                       >
                         <Eye className="w-4 h-4" />
                       </a>
-                      {order.stripe_payment_intent && (
+                      {order.stripe_payment_intent && (order.stripe_payment_intent.startsWith('pi_') || order.stripe_payment_intent.startsWith('ch_')) && (
                         <a
                           href={`https://dashboard.stripe.com/payments/${order.stripe_payment_intent}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="p-2 text-zinc-400 hover:text-indigo-400 hover:bg-zinc-800 rounded-lg transition-colors inline-block ml-1"
                           title="Ver en Stripe"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      )}
+                      {order.payment_method === 'paypal' && order.stripe_payment_intent && (
+                        <a
+                          href={`https://www.paypal.com/activity/payment/${order.stripe_payment_intent}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 text-zinc-400 hover:text-[#0070BA] hover:bg-zinc-800 rounded-lg transition-colors inline-block ml-1"
+                          title="Ver en PayPal"
                         >
                           <ExternalLink className="w-4 h-4" />
                         </a>

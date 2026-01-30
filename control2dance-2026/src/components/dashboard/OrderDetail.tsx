@@ -41,6 +41,7 @@ interface Order {
   customer_email: string;
   customer_name: string;
   stripe_payment_intent: string | null;
+  payment_method: string | null;
   items: OrderItem[];
   order_number?: number;
 }
@@ -342,13 +343,27 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
         {/* Método de pago */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-indigo-500/10 rounded-lg flex items-center justify-center">
-              <CreditCard className="w-5 h-5 text-indigo-400" />
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+              order.payment_method === 'paypal' ? 'bg-[#0070BA]/10' : 'bg-indigo-500/10'
+            }`}>
+              <CreditCard className={`w-5 h-5 ${
+                order.payment_method === 'paypal' ? 'text-[#0070BA]' : 'text-indigo-400'
+              }`} />
             </div>
             <span className="text-sm font-medium text-zinc-400">Método de pago</span>
           </div>
-          <p className="text-white">Tarjeta de crédito/débito</p>
-          <p className="text-xs text-zinc-500 mt-1">Procesado por Stripe</p>
+          <p className="text-white capitalize font-medium">
+            {order.payment_method === 'paypal' ? 'PayPal' : 
+             order.payment_method === 'card' ? 'Tarjeta de crédito/débito' : 
+             order.payment_method === 'legacy' ? 'Legacy' :
+             order.payment_method || '-'}
+          </p>
+          <p className="text-xs text-zinc-500 mt-1">
+            {order.payment_method === 'paypal' ? 'Procesado de forma segura por PayPal' : 
+             order.payment_method === 'legacy' ? 'Importado de sistema anterior' :
+             (order.payment_method === 'card' || order.payment_method === 'stripe') ? 'Procesado de forma segura por Stripe' :
+             ''}
+          </p>
         </div>
       </div>
 
