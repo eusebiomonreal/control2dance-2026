@@ -37,6 +37,16 @@ export const POST: APIRoute = async ({ request }) => {
   // Manejar el evento
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
+
+    // FILTRO DE CONVIVENCIA: Ignorar si no es de esta app
+    if (session.metadata?.app !== 'c2d-2026') {
+      console.log('ℹ️ Ignoring checkout session from another app:', session.id);
+      return new Response(JSON.stringify({ received: true, ignored: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     console.log('💳 Processing checkout:', session.id);
 
     try {
@@ -68,7 +78,7 @@ async function handleCheckoutComplete(session: any) {
   // Obtener detalles adicionales del Payment Intent
   let paymentMethod = null;
   let receiptUrl = null;
-  
+
   if (session.payment_intent) {
     try {
       const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent, {
@@ -191,7 +201,7 @@ async function handleCheckoutComplete(session: any) {
 
   // 5. Enviar emails de confirmación
   const siteUrl = process.env.PUBLIC_SITE_URL || 'https://dev.control2dance.es';
-  
+
   // Preparar datos de los items para el email
   const orderItems = lineItems.data.map(item => {
     const product = item.price?.product as any;

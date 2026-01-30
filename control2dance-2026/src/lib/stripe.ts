@@ -28,7 +28,7 @@ export async function createCheckoutSession(
   userId?: string
 ) {
   const baseUrl = process.env.PUBLIC_SITE_URL || import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4321';
-  
+
   const lineItems = items.map(item => {
     // Convertir URL relativa a absoluta si es necesario
     let imageUrl = item.image;
@@ -61,6 +61,7 @@ export async function createCheckoutSession(
     success_url: successUrl,
     cancel_url: cancelUrl,
     metadata: {
+      app: 'c2d-2026',
       product_ids: items.map(i => i.id).join(','),
       user_id: userId || ''
     }

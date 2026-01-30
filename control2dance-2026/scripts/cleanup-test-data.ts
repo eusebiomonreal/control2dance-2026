@@ -38,16 +38,36 @@ async function run() {
     }
 
     const idsToDelete = ordersToDelete.map(o => o.id);
-    console.log(`🗑️ Eliminando ${ordersToDelete.length} registros...`);
+    console.log(`🗑️ Eliminando datos asociados a ${ordersToDelete.length} pedidos...`);
 
-    // Debido a las claves foráneas, eliminamos primero los order_items y tokens (aunque Supabase suele tener ON DELETE CASCADE)
-    const { error: itemsError } = await supabase
-        .from('order_items')
-        .delete()
-        .in('order_id', idsToDelete);
+    // 1. Obtener IDs de tokens de descarga asociados a estos pedidos
+    const { data: tokens } = await supabase
+        .from('download_tokens')
+        .select('id')
+        .in('product_id', await (async () => {
+            const { data: items } = await supabase.from('order_items').select('product_id').in('order_id', idsToDelete);
+            return (items || []).map(i => i.product_id);
+        })());
 
-    if (itemsError) console.error('⚠️ Error eliminando items:', itemsError);
+    // En realidad, es mejor buscar tokens por order_item_id
+    const { data: items } = await supabase.from('order_items').select('id').in('order_id', idsToDelete);
+    const itemIds = (items || []).map(i => i.id);
 
+    if (itemIds.length > 0) {
+        const { data: tokensData } = await supabase.from('download_tokens').select('id').in('order_item_id', itemIds);
+        const tokenIds = (tokensData || []).map(t => t.id);
+
+        if (tokenIds.length > 0) {
+            console.log(`   - Limpiando ${tokenIds.length} tokens y sus logs...`);
+            await supabase.from('download_logs').delete().in('download_token_id', tokenIds);
+            await supabase.from('download_tokens').delete().in('id', tokenIds);
+        }
+    }
+
+    // 2. Eliminar items de pedido
+    await supabase.from('order_items').delete().in('order_id', idsToDelete);
+
+    // 3. Eliminar los pedidos
     const { error: delError } = await supabase
         .from('orders')
         .delete()
